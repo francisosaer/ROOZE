@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opmeting elementen</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: #f2f2f2;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .element-blok {
+            background: #ffffff;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .element-blok strong {
+            font-size: 18px;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+
+        input[type="number"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Opmeting</h2>
+
+<select id="elementSelect">
+    <option value="">Kies element</option>
+    <option value="Raam">Raam</option>
+    <option value="Deur">Deur</option>
+    <option value="Garagepoort">Garagepoort</option>
+</select>
+
+<div id="elementenContainer"></div>
+<div id="error" class="error"></div>
+
+<script>
+    let teller = 0;
+    const maxElementen = 10;
+
+    document.getElementById("elementSelect").addEventListener("change", function () {
+        const type = this.value;
+        if (!type) return;
+
+        if (teller >= maxElementen) {
+            document.getElementById("error").textContent =
+                "Maximum 10 elementen toegestaan.";
+            this.value = "";
+            return;
+        }
+
+        document.getElementById("error").textContent = "";
+        teller++;
+
+        const blok = document.createElement("div");
+        blok.className = "element-blok";
+
+        blok.innerHTML = `
+            <strong>${type} ${teller}</strong>
+
+            <label>Lengte (cm)</label>
+            <input type="number" placeholder="bv. 120">
+
+            <label>Breedte (cm)</label>
+            <input type="number" placeholder="bv. 90">
+
+            <label>Foto</label>
+            <input type="file" accept="image/*" capture="environment">
+        `;
+
+        document.getElementById("elementenContainer").appendChild(blok);
+        this.value = "";
+    });
+</script>
+
+</body>
+</html>
