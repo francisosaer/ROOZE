@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Opmeting</title>
+<title>Opmeting Tool</title>
 
+<!-- CSS -->
 <style>
 body {
     font-family: Arial, sans-serif;
@@ -17,10 +18,11 @@ h2 {
     text-align: center;
 }
 
-select {
+select, input[type=text], input[type=date], input[type=number] {
     width: 100%;
     padding: 12px;
     font-size: 16px;
+    margin-top: 5px;
 }
 
 .element-blok {
@@ -29,18 +31,13 @@ select {
     margin-top: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    position: relative;
 }
 
 label {
     margin-top: 10px;
     display: block;
     font-weight: bold;
-}
-
-input[type="number"] {
-    width: 100%;
-    padding: 10px;
-    font-size: 16px;
 }
 
 .foto-input {
@@ -84,6 +81,17 @@ input[type="number"] {
     cursor: pointer;
 }
 
+.verwijder-element {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    float: right;
+}
+
 .error {
     text-align: center;
     color: red;
@@ -94,8 +102,35 @@ input[type="number"] {
 
 <body>
 
-<h2>Opmeting</h2>
+<h2>Opmeting Tool</h2>
 
+<!-- Pincode/vergrendeling -->
+<div style="margin-bottom:10px; text-align:center;">
+    <button onclick="vergrendel()">🔒 Vergrendelen</button>
+    <button onclick="ontgrendel()">🔓 Ontgrendelen</button>
+</div>
+
+<!-- Klantgegevens -->
+<div class="element-blok">
+    <strong>Klantgegevens</strong>
+
+    <label>Klantnaam</label>
+    <input type="text" id="klantnaam">
+
+    <label>Adres</label>
+    <input type="text" id="adres">
+
+    <label>Datum</label>
+    <input type="date" id="datum">
+
+    <label>Referentie</label>
+    <input type="text" id="referentie">
+
+    <label>Opmerkingen</label>
+    <input type="text" id="opmerkingen">
+</div>
+
+<!-- Element select -->
 <select id="elementSelect">
     <option value="">Kies element</option>
     <option value="Raam">Raam</option>
@@ -106,10 +141,56 @@ input[type="number"] {
 <div id="container"></div>
 <div id="error" class="error"></div>
 
+<!-- PDF knop -->
+<button onclick="maakPDF()" style="margin-top:15px;width:100%;padding:12px;">📄 Maak PDF</button>
+
+<!-- jsPDF library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <script>
 let teller = 0;
 const max = 10;
+let vergrendeld = localStorage.getItem("vergrendeld") === "true";
 
+// PINCODE / vergrendeling
+function vergrendel() {
+    let pin = prompt("Kies een pincode");
+    if (!pin) return;
+    localStorage.setItem("pin", pin);
+    localStorage.setItem("vergrendeld", "true");
+    vergrendeld = true;
+    toepassenVergrendeling();
+    alert("Opmeting vergrendeld 🔒");
+}
+
+function ontgrendel() {
+    let pin = prompt("Geef pincode in");
+    if (pin === localStorage.getItem("pin")) {
+        localStorage.setItem("vergrendeld", "false");
+        vergrendeld = false;
+        toepassenVergrendeling();
+        alert("Ontgrendeld 🔓");
+    } else {
+        alert("Verkeerde pincode");
+    }
+}
+
+function toepassenVergrendeling() {
+    document.querySelectorAll("input, select, .foto-knop, .verwijder-element").forEach(el => {
+        if (vergrendeld) {
+            el.disabled = true;
+            el.style.pointerEvents = "none";
+            el.style.opacity = "0.6";
+        } else {
+            el.disabled = false;
+            el.style.pointerEvents = "auto";
+            el.style.opacity = "1";
+        }
+    });
+}
+toepassenVergrendeling();
+
+// Element select
 document.getElementById("elementSelect").addEventListener("change", function() {
     const type = this.value;
     if (!type) return;
@@ -127,7 +208,8 @@ document.getElementById("elementSelect").addEventListener("change", function() {
     blok.className = "element-blok";
 
     blok.innerHTML = `
-        <strong>${type} ${teller}</strong>
+        <button class="verwijder-element">🗑️</button>
+        <strong>${type}</strong>
 
         <label>Lengte (cm)</label>
         <input type="number">
@@ -136,45 +218,121 @@ document.getElementById("elementSelect").addEventListener("change", function() {
         <input type="number">
 
         <input type="file" class="foto-input" accept="image/*" capture="environment">
-
         <div class="foto-knop">📸 Foto maken</div>
-
         <div class="foto-lijst"></div>
     `;
 
     document.getElementById("container").appendChild(blok);
+    hernummeren();
     this.value = "";
 });
 
+// Her-nummering functie
+function hernummeren() {
+    const typeTellers = {};
+    document.querySelectorAll(".element-blok").forEach(blok => {
+        if (blok.querySelector("strong")?.innerText.includes("Klantgegevens")) return;
+        const type = blok.querySelector("strong").innerText.replace(/\d+$/, '').trim();
+        if (!typeTellers[type]) typeTellers[type] = 1;
+        else typeTellers[type]++;
+        blok.querySelector("strong").innerText = `${type} ${typeTellers[type]}`;
+    });
+    teller = document.querySelectorAll(".element-blok").length - 1;
+}
+
+// Foto en verwijderen logica
 document.addEventListener("click", function(e) {
+    // Foto knop
     if (e.target.classList.contains("foto-knop")) {
         const input = e.target.previousElementSibling;
         input.click();
     }
 
-    if (e.target.classList.contains("verwijder")) {
-        e.target.parentElement.remove();
+    // Verwijder element
+    if (e.target.classList.contains("verwijder-element")) {
+        if (vergrendeld) {
+            alert("Opmeting is vergrendeld 🔒");
+            return;
+        }
+        if (confirm("Dit element verwijderen?")) {
+            e.target.closest(".element-blok").remove();
+            hernummeren();
+        }
     }
 });
 
+// Foto preview
 document.addEventListener("change", function(e) {
     if (e.target.classList.contains("foto-input")) {
         const lijst = e.target.nextElementSibling.nextElementSibling;
         const file = e.target.files[0];
         if (!file) return;
-
         const fotoDiv = document.createElement("div");
         fotoDiv.className = "foto-item";
-
-        fotoDiv.innerHTML = `
-            <img src="${URL.createObjectURL(file)}">
-            <button class="verwijder">×</button>
-        `;
-
+        fotoDiv.innerHTML = `<img src="${URL.createObjectURL(file)}"><button class="verwijder">×</button>`;
         lijst.appendChild(fotoDiv);
         e.target.value = "";
     }
 });
+
+// Verwijder individuele foto
+document.addEventListener("click", function(e) {
+    if (e.target.classList.contains("verwijder")) {
+        if (vergrendeld) {
+            alert("Opmeting is vergrendeld 🔒");
+            return;
+        }
+        e.target.parentElement.remove();
+    }
+});
+
+// PDF functie (alles compact)
+async function maakPDF() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    let y = 10;
+    function lijn(txt) { pdf.text(txt, 10, y); y += 8; }
+
+    // Klantgegevens
+    lijn("KLANTGEGEVENS");
+    lijn("Naam: " + document.getElementById("klantnaam").value);
+    lijn("Adres: " + document.getElementById("adres").value);
+    lijn("Datum: " + document.getElementById("datum").value);
+    lijn("Referentie: " + document.getElementById("referentie").value);
+    lijn("Opmerkingen: " + document.getElementById("opmerkingen").value);
+    y += 5;
+    pdf.line(10, y, 200, y);
+    y += 10;
+
+    // Elementen
+    document.querySelectorAll(".element-blok").forEach(blok => {
+        if (!blok.querySelector("strong") || blok.innerText.includes("Klantgegevens")) return;
+        const type = blok.querySelector("strong").innerText;
+        const inputs = blok.querySelectorAll("input[type='number']");
+        const lengte = inputs[0]?.value || 0;
+        const breedte = inputs[1]?.value || 0;
+        const opp = (lengte * breedte / 10000).toFixed(2);
+
+        lijn(type);
+        lijn("Lengte: " + lengte + " cm");
+        lijn("Breedte: " + breedte + " cm");
+        lijn("Oppervlakte: " + opp + " m²");
+
+        // Foto's
+        const fotos = blok.querySelectorAll("img");
+        for (let img of fotos) {
+            if (y > 250) { pdf.addPage(); y = 10; }
+            pdf.addImage(img.src, "JPEG", 10, y, 60, 45);
+            y += 50;
+        }
+
+        y += 5;
+        pdf.line(10, y, 200, y);
+        y += 10;
+    });
+
+    pdf.save("opmeting.pdf");
+}
 </script>
 
 </body>
