@@ -7,38 +7,91 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 900px;
+      background: #f4f6f8;
+      max-width: 1000px;
       margin: auto;
       padding: 20px;
     }
 
+    h1 {
+      text-align: center;
+    }
+
     .element {
-      border: 1px solid #ccc;
+      background: white;
+      border-radius: 8px;
       padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 6px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .element-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .element-header h3 {
+      margin: 0;
+    }
+
+    .remove-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 15px;
+      margin-top: 10px;
     }
 
     label {
       display: block;
       margin-top: 8px;
+      font-size: 0.9em;
     }
 
     input, select {
       width: 100%;
       padding: 6px;
+      margin-top: 3px;
     }
 
-    button {
-      padding: 10px 15px;
-      margin-top: 15px;
+    .photo-box {
+      border: 1px dashed #ccc;
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .photo-box img {
+      max-width: 100%;
+      margin-top: 10px;
+      display: none;
+      border-radius: 4px;
+    }
+
+    button#addElement {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background: #2c7be5;
+      color: white;
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
     }
 
-    img {
-      max-width: 200px;
+    #limitMessage {
+      text-align: center;
+      color: red;
       margin-top: 10px;
-      display: block;
     }
   </style>
 </head>
@@ -59,11 +112,7 @@
   let totalElements = 0;
   const maxElements = 30;
 
-  const counters = {
-    Raam: 0,
-    Deur: 0,
-    Poort: 0
-  };
+  const counters = { Raam: 0, Deur: 0, Poort: 0 };
 
   addBtn.addEventListener("click", () => {
     if (totalElements >= maxElements) {
@@ -73,11 +122,14 @@
 
     totalElements++;
 
-    const div = document.createElement("div");
-    div.className = "element";
+    const el = document.createElement("div");
+    el.className = "element";
 
-    div.innerHTML = `
-      <h3>Element ${totalElements}</h3>
+    el.innerHTML = `
+      <div class="element-header">
+        <h3>Element</h3>
+        <button class="remove-btn">Verwijderen</button>
+      </div>
 
       <label>Type</label>
       <select class="type">
@@ -88,32 +140,37 @@
       </select>
 
       <div class="details" style="display:none">
-        <p class="label"></p>
+        <strong class="label"></strong>
 
-        <label>Breedte (cm)</label>
-        <input type="number" min="0">
+        <div class="grid">
+          <div>
+            <label>Breedte (cm)</label>
+            <input type="number" min="0">
 
-        <label>Hoogte (cm)</label>
-        <input type="number" min="0">
+            <label>Hoogte (cm)</label>
+            <input type="number" min="0">
+          </div>
 
-        <label>Foto nemen (max 2MB)</label>
-        <input type="file" accept="image/*" capture="environment">
-
-        <img class="preview" style="display:none">
+          <div class="photo-box">
+            <label>Foto nemen (max 2MB)</label>
+            <input type="file" accept="image/*" capture="environment">
+            <img>
+          </div>
+        </div>
       </div>
     `;
 
-    container.appendChild(div);
+    container.appendChild(el);
 
-    const typeSelect = div.querySelector(".type");
-    const details = div.querySelector(".details");
-    const label = div.querySelector(".label");
-    const fileInput = div.querySelector("input[type=file]");
-    const preview = div.querySelector(".preview");
+    const typeSelect = el.querySelector(".type");
+    const details = el.querySelector(".details");
+    const label = el.querySelector(".label");
+    const fileInput = el.querySelector("input[type=file]");
+    const img = el.querySelector("img");
+    const removeBtn = el.querySelector(".remove-btn");
 
     typeSelect.addEventListener("change", () => {
       if (!typeSelect.value) return;
-
       counters[typeSelect.value]++;
       label.textContent = `${typeSelect.value} ${counters[typeSelect.value]}`;
       details.style.display = "block";
@@ -124,21 +181,27 @@
       if (!file) return;
 
       if (file.size > 2 * 1024 * 1024) {
-        alert("Bestand te groot! Maximaal 2MB.");
+        alert("Foto te groot (max 2MB)");
         fileInput.value = "";
-        preview.style.display = "none";
+        img.style.display = "none";
         return;
       }
 
       const reader = new FileReader();
       reader.onload = e => {
-        preview.src = e.target.result;
-        preview.style.display = "block";
+        img.src = e.target.result;
+        img.style.display = "block";
       };
       reader.readAsDataURL(file);
+    });
+
+    removeBtn.addEventListener("click", () => {
+      el.remove();
+      totalElements--;
     });
   });
 </script>
 
 </body>
 </html>
+
