@@ -1,251 +1,144 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Opmeting Tool</title>
+  <meta charset="UTF-8">
+  <title>Opmeet Tool</title>
 
-<style>
-body { font-family: Arial; background:#f2f2f2; padding:15px; margin:0; }
-h2 { text-align:center; }
-select, input { width:100%; padding:12px; font-size:16px; margin-top:5px; }
-.element-blok { background:#fff; padding:15px; margin-top:15px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
-label { margin-top:10px; display:block; font-weight:bold; }
-.foto-input { display:none; }
-.foto-knop { margin-top:10px; padding:12px; background:#007bff; color:#fff; text-align:center; border-radius:6px; cursor:pointer; }
-.foto-item { margin-top:10px; position:relative; }
-.foto-item img { width:100%; border-radius:6px; }
-.verwijder { position:absolute; top:5px; right:5px; background:#dc3545; color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; }
-.verwijder-element { float:right; background:#dc3545; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; }
-.error { color:red; text-align:center; margin-top:10px; }
-</style>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .element {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+    }
+
+    label {
+      display: block;
+      margin-top: 8px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 6px;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    img {
+      max-width: 200px;
+      margin-top: 10px;
+      display: block;
+    }
+  </style>
 </head>
-
 <body>
 
-<h2>Opmeting Tool</h2>
+<h1>Opmeet Tool</h1>
 
-<div class="element-blok">
-<strong>Klantgegevens</strong>
-<label>Klantnaam</label><input id="klantnaam">
-<label>Adres</label><input id="adres">
-<label>Datum</label><input type="date" id="datum">
-<label>Referentie</label><input id="referentie">
-<label>Opmerkingen</label><input id="opmerkingen">
-</div>
+<div id="elements"></div>
 
-<select id="elementSelect">
-<option value="">Kies element</option>
-<option value="Raam">Raam</option>
-<option value="Deur">Deur</option>
-<option value="Garagepoort">Garagepoort</option>
-</select>
-
-<div id="container"></div>
-<div class="error" id="error"></div>
-
-<button onclick="maakPDF()" style="margin-top:15px;width:100%;padding:12px;">📄 Maak PDF</button>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<button id="addElement">+ Element toevoegen</button>
+<p id="limitMessage"></p>
 
 <script>
-let teller = 0, max = 10;
+  const container = document.getElementById("elements");
+  const addBtn = document.getElementById("addElement");
+  const limitMessage = document.getElementById("limitMessage");
 
-/* ======================
-   AUTO OPSLAAN
-====================== */
-function saveData(){
-  const data = {
-    klant: {
-      naam: klantnaam.value,
-      adres: adres.value,
-      datum: datum.value,
-      ref: referentie.value,
-      opmerkingen: opmerkingen.value
-    },
-    elementen: []
+  let totalElements = 0;
+  const maxElements = 30;
+
+  const counters = {
+    Raam: 0,
+    Deur: 0,
+    Poort: 0
   };
 
-  document.querySelectorAll(".element-blok").forEach(blok=>{
-    const s = blok.querySelector("strong");
-    if(!s || s.innerText==="Klantgegevens") return;
+  addBtn.addEventListener("click", () => {
+    if (totalElements >= maxElements) {
+      limitMessage.textContent = "Maximum 30 elementen bereikt.";
+      return;
+    }
 
-    const nums = blok.querySelectorAll("input[type=number]");
-    const fotos = [...blok.querySelectorAll("img")].map(i=>i.src);
+    totalElements++;
 
-    data.elementen.push({
-      type: s.innerText.replace(/\d+/,'').trim(),
-      lengte: nums[0]?.value || "",
-      breedte: nums[1]?.value || "",
-      fotos
-    });
-  });
+    const div = document.createElement("div");
+    div.className = "element";
 
-  localStorage.setItem("opmetingData", JSON.stringify(data));
-}
+    div.innerHTML = `
+      <h3>Element ${totalElements}</h3>
 
-function loadData(){
-  const raw = localStorage.getItem("opmetingData");
-  if(!raw) return;
-  const data = JSON.parse(raw);
+      <label>Type</label>
+      <select class="type">
+        <option value="">-- kies --</option>
+        <option value="Raam">Raam</option>
+        <option value="Deur">Deur</option>
+        <option value="Poort">Poort</option>
+      </select>
 
-  klantnaam.value = data.klant.naam || "";
-  adres.value = data.klant.adres || "";
-  datum.value = data.klant.datum || "";
-  referentie.value = data.klant.ref || "";
-  opmerkingen.value = data.klant.opmerkingen || "";
+      <div class="details" style="display:none">
+        <p class="label"></p>
 
-  data.elementen.forEach(el=>{
-    addElement(el.type, el.lengte, el.breedte, el.fotos);
-  });
-}
+        <label>Breedte (cm)</label>
+        <input type="number" min="0">
 
-/* ======================
-   FOTO COMPRESSIE
-====================== */
-function resizeImage(file, maxW=1200, quality=0.7){
-  return new Promise(res=>{
-    const img=new Image(), r=new FileReader();
-    r.onload=e=>img.src=e.target.result;
-    r.readAsDataURL(file);
-    img.onload=()=>{
-      let s=Math.min(1,maxW/img.width);
-      let c=document.createElement("canvas");
-      c.width=img.width*s; c.height=img.height*s;
-      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-      res(c.toDataURL("image/jpeg",quality));
-    };
-  });
-}
+        <label>Hoogte (cm)</label>
+        <input type="number" min="0">
 
-/* ======================
-   ELEMENTEN
-====================== */
-function addElement(type, l="", b="", fotos=[]){
-  if(teller>=max) return;
-  teller++;
+        <label>Foto nemen (max 2MB)</label>
+        <input type="file" accept="image/*" capture="environment">
 
-  const blok=document.createElement("div");
-  blok.className="element-blok";
-  blok.innerHTML=`
-    <button class="verwijder-element">🗑️</button>
-    <strong>${type}</strong>
-    <label>Lengte (cm)</label><input type="number" value="${l}">
-    <label>Breedte (cm)</label><input type="number" value="${b}">
-    <input type="file" class="foto-input" accept="image/*" capture="environment">
-    <div class="foto-knop">📸 Foto maken</div>
-    <div class="foto-lijst"></div>
-  `;
-  container.appendChild(blok);
+        <img class="preview" style="display:none">
+      </div>
+    `;
 
-  fotos.forEach(src=>{
-    const d=document.createElement("div");
-    d.className="foto-item";
-    d.innerHTML=`<img src="${src}"><button class="verwijder">×</button>`;
-    blok.querySelector(".foto-lijst").appendChild(d);
-  });
+    container.appendChild(div);
 
-  hernummeren();
-}
+    const typeSelect = div.querySelector(".type");
+    const details = div.querySelector(".details");
+    const label = div.querySelector(".label");
+    const fileInput = div.querySelector("input[type=file]");
+    const preview = div.querySelector(".preview");
 
-elementSelect.addEventListener("change",function(){
-  if(!this.value) return;
-  addElement(this.value);
-  this.value="";
-  saveData();
-});
+    typeSelect.addEventListener("change", () => {
+      if (!typeSelect.value) return;
 
-function hernummeren(){
-  const t={};
-  document.querySelectorAll(".element-blok").forEach(b=>{
-    const s=b.querySelector("strong");
-    if(!s||s.innerText==="Klantgegevens") return;
-    let k=s.innerText.replace(/\d+/,'').trim();
-    t[k]=(t[k]||0)+1;
-    s.innerText=`${k} ${t[k]}`;
-  });
-  teller=document.querySelectorAll(".element-blok").length-1;
-  saveData();
-}
-
-/* ======================
-   EVENTS
-====================== */
-document.addEventListener("input", saveData);
-
-document.addEventListener("click",e=>{
-  if(e.target.classList.contains("foto-knop"))
-    e.target.previousElementSibling.click();
-
-  if(e.target.classList.contains("verwijder-element")){
-    e.target.closest(".element-blok").remove();
-    hernummeren();
-  }
-
-  if(e.target.classList.contains("verwijder")){
-    e.target.parentElement.remove();
-    saveData();
-  }
-});
-
-document.addEventListener("change",async e=>{
-  if(e.target.classList.contains("foto-input")){
-    const file=e.target.files[0];
-    if(!file) return;
-    const img=await resizeImage(file);
-    const d=document.createElement("div");
-    d.className="foto-item";
-    d.innerHTML=`<img src="${img}"><button class="verwijder">×</button>`;
-    e.target.nextElementSibling.nextElementSibling.appendChild(d);
-    saveData();
-  }
-});
-
-/* ======================
-   PDF
-====================== */
-function maakPDF(){
-  const { jsPDF }=window.jspdf;
-  const pdf=new jsPDF({compress:true});
-  let y=10;
-  const l=t=>{pdf.text(t,10,y);y+=8};
-
-  l("KLANTGEGEVENS");
-  l("Naam: "+klantnaam.value);
-  l("Adres: "+adres.value);
-  l("Datum: "+datum.value);
-  l("Referentie: "+referentie.value);
-  l("Opmerkingen: "+opmerkingen.value);
-
-  y+=5; pdf.line(10,y,200,y); y+=10;
-
-  document.querySelectorAll(".element-blok").forEach(b=>{
-    const s=b.querySelector("strong");
-    if(!s||s.innerText==="Klantgegevens") return;
-
-    const n=b.querySelectorAll("input[type=number]");
-    l(s.innerText);
-    l("Lengte: "+(n[0]?.value||0)+" cm");
-    l("Breedte: "+(n[1]?.value||0)+" cm");
-
-    b.querySelectorAll("img").forEach(i=>{
-      if(y>230){pdf.addPage();y=10;}
-      pdf.addImage(i.src,"JPEG",10,y,60,45,"","FAST");
-      y+=50;
+      counters[typeSelect.value]++;
+      label.textContent = `${typeSelect.value} ${counters[typeSelect.value]}`;
+      details.style.display = "block";
     });
 
-    y+=5; pdf.line(10,y,200,y); y+=10;
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Bestand te groot! Maximaal 2MB.");
+        fileInput.value = "";
+        preview.style.display = "none";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    });
   });
-
-  pdf.save("opmeting.pdf");
-}
-
-/* ======================
-   INIT
-====================== */
-loadData();
 </script>
 
 </body>
 </html>
-
