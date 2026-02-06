@@ -9,7 +9,7 @@
 <style>
 /* ===== BASIS ===== */
 html {
-  font-size: 20px;
+  font-size: 24px; /* GROTE LETTERGROOTTE */
 }
 
 body {
@@ -22,7 +22,7 @@ body {
 
 h1 {
   text-align:center;
-  font-size:1.6rem;
+  font-size:2rem;
 }
 
 /* ===== KAARTEN ===== */
@@ -38,13 +38,13 @@ label {
   display:block;
   font-weight:bold;
   margin-top:14px;
-  font-size:1rem;
+  font-size:1.2rem;
 }
 
 input, select {
   width:100%;
-  padding:14px;
-  font-size:1.1rem;
+  padding:16px;
+  font-size:1.2rem;
   margin-top:6px;
 }
 
@@ -60,7 +60,7 @@ input, select {
   background:#e74c3c;
   color:white;
   border:none;
-  padding:10px 14px;
+  padding:12px 16px;
   font-size:1rem;
   border-radius:8px;
 }
@@ -68,7 +68,7 @@ input, select {
 /* ===== GRID ===== */
 .grid {
   display:grid;
-  grid-template-columns:2fr 1fr;
+  grid-template-columns:1fr;
   gap:16px;
   margin-top:10px;
 }
@@ -79,10 +79,11 @@ input, select {
   border-radius:12px;
   padding:12px;
   text-align:center;
+  margin-top:12px;
 }
 
 .camera-btn {
-  font-size:64px;
+  font-size:72px;
   line-height:1;
   cursor:pointer;
   user-select:none;
@@ -104,7 +105,7 @@ input, select {
 button {
   width:100%;
   padding:18px;
-  font-size:1.2rem;
+  font-size:1.4rem;
   border:none;
   border-radius:12px;
   cursor:pointer;
@@ -112,7 +113,7 @@ button {
 
 .primary {
   background:#2c7be5;
-  color:white;
+  color:#fff;
 }
 
 .actions {
@@ -121,27 +122,10 @@ button {
   gap:12px;
 }
 
-/* ===== SMARTPHONE EXTRA GROOT ===== */
-@media (max-width:700px) {
-  html {
-    font-size:24px;
-  }
-
-  h1 {
-    font-size:1.8rem;
-  }
-
-  .grid {
-    grid-template-columns:1fr;
-  }
-
-  .actions {
-    grid-template-columns:1fr;
-  }
-
-  .camera-btn {
-    font-size:72px;
-  }
+/* ===== SMARTPHONE EXTRA ===== */
+@media(max-width:700px){
+  html { font-size:26px; }
+  h1 { font-size:2.2rem; }
 }
 </style>
 </head>
@@ -196,20 +180,16 @@ document.getElementById("addElement").onclick = () => {
     </select>
 
     <div class="details" style="display:none">
-      <div class="grid">
-        <div>
-          <label>Breedte (cm)</label>
-          <input type="number">
+      <label>Breedte (cm)</label>
+      <input type="number">
 
-          <label>Hoogte (cm)</label>
-          <input type="number">
-        </div>
+      <label>Hoogte (cm)</label>
+      <input type="number">
 
-        <div class="photo-box">
-          <div class="camera-btn">📷</div>
-          <input class="file-input" type="file" accept="image/*" capture="environment">
-          <img>
-        </div>
+      <div class="photo-box">
+        <div class="camera-btn">📷</div>
+        <input class="file-input" type="file" accept="image/*" capture="environment">
+        <img>
       </div>
     </div>
   `;
@@ -236,27 +216,87 @@ document.getElementById("addElement").onclick = () => {
   file.onchange = () => {
     const f = file.files[0];
     if (!f) return;
-
-    if (f.size > 2 * 1024 * 1024) {
-      alert("Foto max 2MB");
-      return;
-    }
+    if (f.size > 2 * 1024 * 1024) return alert("Foto max 2MB");
 
     const r = new FileReader();
-    r.onload = e => {
-      img.src = e.target.result;
-      img.style.display = "block";
-    };
+    r.onload = e => { img.src = e.target.result; img.style.display="block"; };
     r.readAsDataURL(f);
   };
 
-  remove.onclick = () => {
-    el.remove();
-    totalElements--;
+  remove.onclick = () => { el.remove(); totalElements--; };
+};
+
+/* OPSLAAN, LADEN, PDF (zelfde als voorheen) */
+
+document.getElementById("saveProject").onclick = () => {
+  const data = {
+    klant: clientName.value,
+    datum: projectDate.value,
+    elementen:[]
   };
+
+  document.querySelectorAll(".element").forEach(el=>{
+    const type = el.querySelector(".label").textContent;
+    if(!type) return;
+    data.elementen.push({
+      type,
+      breedte: el.querySelectorAll("input[type=number]")[0].value,
+      hoogte: el.querySelectorAll("input[type=number]")[1].value,
+      foto: el.querySelector("img").src || ""
+    });
+  });
+
+  localStorage.setItem(data.klant, JSON.stringify(data));
+  alert("Project opgeslagen");
+};
+
+document.getElementById("loadProject").onclick = () => {
+  const name = prompt("Klantnaam?");
+  const data = JSON.parse(localStorage.getItem(name));
+  if(!data) return alert("Niet gevonden");
+
+  container.innerHTML="";
+  clientName.value=data.klant;
+  projectDate.value=data.datum;
+
+  data.elementen.forEach(e=>{
+    document.getElementById("addElement").click();
+    const el = container.lastChild;
+    el.querySelector(".label").textContent=e.type;
+    el.querySelectorAll("input[type=number]")[0].value=e.breedte;
+    el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
+    if(e.foto){
+      el.querySelector("img").src=e.foto;
+      el.querySelector("img").style.display="block";
+    }
+    el.querySelector(".details").style.display="block";
+  });
+};
+
+document.getElementById("exportPDF").onclick = () => {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  let y=10;
+
+  pdf.setFontSize(16);
+  pdf.text("Opmeetrapport",10,y); y+=10;
+  pdf.setFontSize(12);
+  pdf.text(`Klant: ${clientName.value}`,10,y); y+=8;
+  pdf.text(`Datum: ${projectDate.value}`,10,y); y+=10;
+
+  document.querySelectorAll(".element").forEach(el=>{
+    const label = el.querySelector(".label").textContent;
+    const img = el.querySelector("img").src;
+    pdf.text(label,10,y); y+=6;
+    if(img){
+      pdf.addImage(img,"JPEG",10,y,40,30);
+      y+=35;
+    }
+  });
+
+  pdf.save("opmeting.pdf");
 };
 </script>
 
 </body>
 </html>
-
