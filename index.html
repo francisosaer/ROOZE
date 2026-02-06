@@ -91,11 +91,15 @@ typeDropdown.onchange = () => {
   const el = document.createElement("div");
   el.className = "element";
 
-  el.innerHTML = `
-    <div class="element-header">
-      <strong class="label">${selectedType} ${counters[selectedType]}</strong>
-      <button class="remove-btn">🗑️</button>
-    </div>
+ <div class="element-header">
+  <strong class="label">${selectedType} ${counters[selectedType]}</strong>
+  <button class="remove-btn">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 6H5H21V8H19.0005L18.293 21.707C18.244 22.403 17.646 22.923 16.95 22.923H7.04998C6.354 22.923 5.756 22.403 5.707 21.707L5 8H3V6ZM9 10V19H11V10H9ZM13 10V19H15V10H13ZM8 4V2H16V4H21V6H3V4H8Z"/>
+    </svg>
+  </button>
+</div>
+
 
     <label>Breedte (cm)</label>
     <input type="number">
@@ -195,3 +199,4 @@ document.getElementById("exportPDF").onclick = () => {
 
 </body>
 </html>
+
