@@ -14,12 +14,12 @@ label { display:block; font-weight:bold; margin-top:14px; font-size:1.4rem; }
 input { width:100%; padding:16px; font-size:1.4rem; margin-top:6px; }
 
 .element-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-.remove-btn { background:none; border:none; width:40px; height:40px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.remove-btn { background:none; border:none; width:50px; height:50px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 
 .photo-box { border:3px dashed #bbb; border-radius:12px; padding:14px; text-align:center; margin-top:14px; }
 .camera-btn { font-size:80px; line-height:1; cursor:pointer; user-select:none; }
-.photo-box img { width:100%; margin-top:14px; border-radius:8px; display:none; }
-.file-input { display:none; }
+.photo-container img { width:100%; margin-top:10px; border-radius:8px; display:block; }
+.photo-container button { margin-top:5px; background:#f44336; color:white; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; }
 
 button { width:100%; padding:20px; font-size:1.6rem; border:none; border-radius:12px; cursor:pointer; }
 .primary { background:#2c7be5; color:#fff; }
@@ -91,15 +91,14 @@ function addElement(type) {
   const el = document.createElement("div");
   el.className = "element";
   el.innerHTML = `
-   <div class="element-header">
-  <strong class="label">${type} ${counters[type]}</strong>
-  <button class="remove-btn">
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="black" xmlns="http://www.w3.org/2000/svg">
-      <path d="M3 6H5H21V8H19.0005L18.293 21.707C18.244 22.403 17.646 22.923 16.95 22.923H7.04998C6.354 22.923 5.756 22.403 5.707 21.707L5 8H3V6ZM9 10V19H11V10H9ZM13 10V19H15V10H13ZM8 4V2H16V4H21V6H3V4H8Z" stroke="black" stroke-width="1.5"/>
-    </svg>
-  </button>
-</div>
-
+    <div class="element-header">
+      <strong class="label">${type} ${counters[type]}</strong>
+      <button class="remove-btn">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 6H5H21V8H19.0005L18.293 21.707C18.244 22.403 17.646 22.923 16.95 22.923H7.04998C6.354 22.923 5.756 22.403 5.707 21.707L5 8H3V6ZM9 10V19H11V10H9ZM13 10V19H15V10H13ZM8 4V2H16V4H21V6H3V4H8Z"/>
+        </svg>
+      </button>
+    </div>
     <label>Breedte (cm)</label>
     <input type="number">
     <label>Hoogte (cm)</label>
@@ -107,27 +106,28 @@ function addElement(type) {
     <div class="photo-box">
       <div class="camera-btn">📷</div>
       <input class="file-input" type="file" accept="image/*" capture="environment">
-      <img>
+      <div class="photo-container"></div>
     </div>
   `;
   container.appendChild(el);
 
-  // Verwijderen
+  // Element verwijderen
   el.querySelector(".remove-btn").onclick = (event) => {
     event.currentTarget.closest(".element").remove();
     totalElements--;
   };
 
-  // Foto toevoegen en compressie
+  // Foto toevoegen en compressie, meerdere foto’s
   const cam = el.querySelector(".camera-btn");
   const fileInput = el.querySelector(".file-input");
-  const img = el.querySelector("img");
+  const photoContainer = el.querySelector(".photo-container");
 
   cam.onclick = () => fileInput.click();
 
   fileInput.onchange = () => {
     const f = fileInput.files[0];
     if(!f) return;
+
     const reader = new FileReader();
     reader.onload = e => {
       const imgObj = new Image();
@@ -139,8 +139,22 @@ function addElement(type) {
         canvas.height = imgObj.height * scale;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(imgObj,0,0,canvas.width,canvas.height);
-        img.src = canvas.toDataURL("image/jpeg",0.6);
-        img.style.display = "block";
+
+        const imgData = canvas.toDataURL("image/jpeg",0.6);
+
+        const imgEl = document.createElement("img");
+        imgEl.src = imgData;
+
+        // knopje om individuele foto te verwijderen
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "❌";
+        removeBtn.onclick = () => {
+          imgEl.remove();
+          removeBtn.remove();
+        }
+
+        photoContainer.appendChild(removeBtn);
+        photoContainer.appendChild(imgEl);
       }
       imgObj.src = e.target.result;
     }
@@ -153,12 +167,10 @@ document.getElementById("saveProject").onclick = () => {
   const data = { klant: clientName.value, datum: projectDate.value, elementen:[] };
   document.querySelectorAll(".element").forEach(el=>{
     const label = el.querySelector(".label").textContent;
-    data.elementen.push({
-      type: label,
-      breedte: el.querySelectorAll("input[type=number]")[0].value,
-      hoogte: el.querySelectorAll("input[type=number]")[1].value,
-      foto: el.querySelector("img").src || ""
-    });
+    const breedte = el.querySelectorAll("input[type=number]")[0].value;
+    const hoogte = el.querySelectorAll("input[type=number]")[1].value;
+    const fotos = Array.from(el.querySelectorAll(".photo-container img")).map(img=>img.src);
+    data.elementen.push({ type: label, breedte, hoogte, fotos });
   });
   localStorage.setItem(data.klant, JSON.stringify(data));
   alert("Project opgeslagen");
@@ -177,7 +189,13 @@ document.getElementById("loadProject").onclick = () => {
     const el = container.lastChild;
     el.querySelectorAll("input[type=number]")[0].value=e.breedte;
     el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
-    if(e.foto){ el.querySelector("img").src=e.foto; el.querySelector("img").style.display="block"; }
+    const photoContainer = el.querySelector(".photo-container");
+    e.fotos.forEach(src=>{
+      const imgEl = document.createElement("img");
+      imgEl.src = src;
+      imgEl.style.marginTop="10px";
+      photoContainer.appendChild(imgEl);
+    });
   });
 };
 
@@ -195,13 +213,16 @@ document.getElementById("exportPDF").onclick = () => {
     const label = el.querySelector(".label").textContent;
     const breedte = el.querySelectorAll("input[type=number]")[0].value;
     const hoogte = el.querySelectorAll("input[type=number]")[1].value;
-    const img = el.querySelector("img").src;
+    const imgs = el.querySelectorAll(".photo-container img");
     pdf.text(`${label} - ${breedte} x ${hoogte} cm`,10,y); y+=6;
-    if(img) { pdf.addImage(img,"JPEG",10,y,40,30); y+=35; }
+    imgs.forEach(img=>{
+      pdf.addImage(img.src,"JPEG",10,y,40,30);
+      y+=35;
+    });
   });
   pdf.save("opmeting.pdf");
 };
 </script>
+
 </body>
 </html>
-
