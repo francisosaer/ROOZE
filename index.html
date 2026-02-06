@@ -18,8 +18,24 @@ input { width:100%; padding:16px; font-size:1.4rem; margin-top:6px; }
 
 .photo-box { border:3px dashed #bbb; border-radius:12px; padding:14px; text-align:center; margin-top:14px; }
 .camera-btn { font-size:80px; line-height:1; cursor:pointer; user-select:none; }
-.photo-container img { width:100%; margin-top:10px; border-radius:8px; display:block; }
-.photo-container button { margin-top:5px; background:#f44336; color:white; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; }
+.photo-container { position: relative; }
+.photo-container img { width:100%; border-radius:8px; display:block; margin-top:10px; }
+.photo-container .remove-photo {
+  position: absolute;
+  top:8px;
+  right:8px;
+  background: rgba(244,67,54,0.9);
+  color:white;
+  border:none;
+  border-radius:50%;
+  width:28px;
+  height:28px;
+  font-size:18px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 
 button { width:100%; padding:20px; font-size:1.6rem; border:none; border-radius:12px; cursor:pointer; }
 .primary { background:#2c7be5; color:#fff; }
@@ -142,19 +158,21 @@ function addElement(type) {
 
         const imgData = canvas.toDataURL("image/jpeg",0.6);
 
+        const photoWrapper = document.createElement("div");
+        photoWrapper.style.position = "relative";
+        photoWrapper.style.marginTop = "10px";
+
         const imgEl = document.createElement("img");
         imgEl.src = imgData;
 
-        // knopje om individuele foto te verwijderen
         const removeBtn = document.createElement("button");
-        removeBtn.textContent = "❌";
-        removeBtn.onclick = () => {
-          imgEl.remove();
-          removeBtn.remove();
-        }
+        removeBtn.textContent = "✖";
+        removeBtn.className = "remove-photo";
+        removeBtn.onclick = () => photoWrapper.remove();
 
-        photoContainer.appendChild(removeBtn);
-        photoContainer.appendChild(imgEl);
+        photoWrapper.appendChild(imgEl);
+        photoWrapper.appendChild(removeBtn);
+        photoContainer.appendChild(photoWrapper);
       }
       imgObj.src = e.target.result;
     }
@@ -191,10 +209,23 @@ document.getElementById("loadProject").onclick = () => {
     el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
     const photoContainer = el.querySelector(".photo-container");
     e.fotos.forEach(src=>{
+      const photoWrapper = document.createElement("div");
+      photoWrapper.style.position = "relative";
+      photoWrapper.style.marginTop = "10px";
+
       const imgEl = document.createElement("img");
       imgEl.src = src;
-      imgEl.style.marginTop="10px";
-      photoContainer.appendChild(imgEl);
+      imgEl.style.width = "100%";
+      imgEl.style.borderRadius = "8px";
+
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "✖";
+      removeBtn.className = "remove-photo";
+      removeBtn.onclick = () => photoWrapper.remove();
+
+      photoWrapper.appendChild(imgEl);
+      photoWrapper.appendChild(removeBtn);
+      photoContainer.appendChild(photoWrapper);
     });
   });
 };
