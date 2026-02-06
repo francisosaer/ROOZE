@@ -111,21 +111,40 @@ function addElement(type) {
   `;
   container.appendChild(el);
 
-  const remove = el.querySelector(".remove-btn");
+  // Verwijderen
+  el.querySelector(".remove-btn").onclick = (event) => {
+    event.currentTarget.closest(".element").remove();
+    totalElements--;
+  };
+
+  // Foto toevoegen en compressie
   const cam = el.querySelector(".camera-btn");
-  const file = el.querySelector(".file-input");
+  const fileInput = el.querySelector(".file-input");
   const img = el.querySelector("img");
 
-  remove.onclick = () => { el.remove(); totalElements--; };
-  cam.onclick = () => file.click();
-  file.onchange = () => {
-    const f = file.files[0];
+  cam.onclick = () => fileInput.click();
+
+  fileInput.onchange = () => {
+    const f = fileInput.files[0];
     if(!f) return;
-    if(f.size > 2*1024*1024) return alert("Foto max 2MB");
-    const r = new FileReader();
-    r.onload = e => { img.src=e.target.result; img.style.display="block"; };
-    r.readAsDataURL(f);
-  };
+    const reader = new FileReader();
+    reader.onload = e => {
+      const imgObj = new Image();
+      imgObj.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxWidth = 800;
+        let scale = Math.min(1, maxWidth / imgObj.width);
+        canvas.width = imgObj.width * scale;
+        canvas.height = imgObj.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(imgObj,0,0,canvas.width,canvas.height);
+        img.src = canvas.toDataURL("image/jpeg",0.6);
+        img.style.display = "block";
+      }
+      imgObj.src = e.target.result;
+    }
+    reader.readAsDataURL(f);
+  }
 }
 
 // Opslaan, laden, PDF
@@ -182,9 +201,5 @@ document.getElementById("exportPDF").onclick = () => {
   pdf.save("opmeting.pdf");
 };
 </script>
-
 </body>
 </html>
-
-
-
