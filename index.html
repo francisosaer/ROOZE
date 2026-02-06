@@ -5,98 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Opmeting Tool</title>
 
-<!-- CSS -->
 <style>
-body {
-    font-family: Arial, sans-serif;
-    background: #f2f2f2;
-    padding: 15px;
-    margin: 0;
-}
-
-h2 {
-    text-align: center;
-}
-
-select, input[type=text], input[type=date], input[type=number] {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    margin-top: 5px;
-}
-
-.element-blok {
-    background: #fff;
-    padding: 15px;
-    margin-top: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    position: relative;
-}
-
-label {
-    margin-top: 10px;
-    display: block;
-    font-weight: bold;
-}
-
-.foto-input {
-    display: none;
-}
-
-.foto-knop {
-    margin-top: 10px;
-    padding: 12px;
-    background: #007bff;
-    color: white;
-    text-align: center;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.foto-lijst {
-    margin-top: 10px;
-}
-
-.foto-item {
-    position: relative;
-    margin-top: 10px;
-}
-
-.foto-item img {
-    width: 100%;
-    border-radius: 6px;
-}
-
-.verwijder {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: red;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    cursor: pointer;
-}
-
-.verwijder-element {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    float: right;
-}
-
-.error {
-    text-align: center;
-    color: red;
-    margin-top: 10px;
-}
+body { font-family: Arial; background:#f2f2f2; padding:15px; margin:0; }
+h2 { text-align:center; }
+select, input { width:100%; padding:12px; font-size:16px; margin-top:5px; }
+.element-blok { background:#fff; padding:15px; margin-top:15px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+label { margin-top:10px; display:block; font-weight:bold; }
+.foto-input { display:none; }
+.foto-knop { margin-top:10px; padding:12px; background:#007bff; color:#fff; text-align:center; border-radius:6px; cursor:pointer; }
+.foto-item { margin-top:10px; position:relative; }
+.foto-item img { width:100%; border-radius:6px; }
+.verwijder { position:absolute; top:5px; right:5px; background:#dc3545; color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; }
+.verwijder-element { float:right; background:#dc3545; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; }
+.error { color:red; text-align:center; margin-top:10px; }
 </style>
 </head>
 
@@ -104,236 +25,227 @@ label {
 
 <h2>Opmeting Tool</h2>
 
-<!-- Pincode/vergrendeling -->
-<div style="margin-bottom:10px; text-align:center;">
-    <button onclick="vergrendel()">🔒 Vergrendelen</button>
-    <button onclick="ontgrendel()">🔓 Ontgrendelen</button>
-</div>
-
-<!-- Klantgegevens -->
 <div class="element-blok">
-    <strong>Klantgegevens</strong>
-
-    <label>Klantnaam</label>
-    <input type="text" id="klantnaam">
-
-    <label>Adres</label>
-    <input type="text" id="adres">
-
-    <label>Datum</label>
-    <input type="date" id="datum">
-
-    <label>Referentie</label>
-    <input type="text" id="referentie">
-
-    <label>Opmerkingen</label>
-    <input type="text" id="opmerkingen">
+<strong>Klantgegevens</strong>
+<label>Klantnaam</label><input id="klantnaam">
+<label>Adres</label><input id="adres">
+<label>Datum</label><input type="date" id="datum">
+<label>Referentie</label><input id="referentie">
+<label>Opmerkingen</label><input id="opmerkingen">
 </div>
 
-<!-- Element select -->
 <select id="elementSelect">
-    <option value="">Kies element</option>
-    <option value="Raam">Raam</option>
-    <option value="Deur">Deur</option>
-    <option value="Garagepoort">Garagepoort</option>
+<option value="">Kies element</option>
+<option value="Raam">Raam</option>
+<option value="Deur">Deur</option>
+<option value="Garagepoort">Garagepoort</option>
 </select>
 
 <div id="container"></div>
-<div id="error" class="error"></div>
+<div class="error" id="error"></div>
 
-<!-- PDF knop -->
 <button onclick="maakPDF()" style="margin-top:15px;width:100%;padding:12px;">📄 Maak PDF</button>
 
-<!-- jsPDF library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-let teller = 0;
-const max = 10;
-let vergrendeld = localStorage.getItem("vergrendeld") === "true";
+let teller = 0, max = 10;
 
-// PINCODE / vergrendeling
-function vergrendel() {
-    let pin = prompt("Kies een pincode");
-    if (!pin) return;
-    localStorage.setItem("pin", pin);
-    localStorage.setItem("vergrendeld", "true");
-    vergrendeld = true;
-    toepassenVergrendeling();
-    alert("Opmeting vergrendeld 🔒");
-}
+/* ======================
+   AUTO OPSLAAN
+====================== */
+function saveData(){
+  const data = {
+    klant: {
+      naam: klantnaam.value,
+      adres: adres.value,
+      datum: datum.value,
+      ref: referentie.value,
+      opmerkingen: opmerkingen.value
+    },
+    elementen: []
+  };
 
-function ontgrendel() {
-    let pin = prompt("Geef pincode in");
-    if (pin === localStorage.getItem("pin")) {
-        localStorage.setItem("vergrendeld", "false");
-        vergrendeld = false;
-        toepassenVergrendeling();
-        alert("Ontgrendeld 🔓");
-    } else {
-        alert("Verkeerde pincode");
-    }
-}
+  document.querySelectorAll(".element-blok").forEach(blok=>{
+    const s = blok.querySelector("strong");
+    if(!s || s.innerText==="Klantgegevens") return;
 
-function toepassenVergrendeling() {
-    document.querySelectorAll("input, select, .foto-knop, .verwijder-element").forEach(el => {
-        if (vergrendeld) {
-            el.disabled = true;
-            el.style.pointerEvents = "none";
-            el.style.opacity = "0.6";
-        } else {
-            el.disabled = false;
-            el.style.pointerEvents = "auto";
-            el.style.opacity = "1";
-        }
+    const nums = blok.querySelectorAll("input[type=number]");
+    const fotos = [...blok.querySelectorAll("img")].map(i=>i.src);
+
+    data.elementen.push({
+      type: s.innerText.replace(/\d+/,'').trim(),
+      lengte: nums[0]?.value || "",
+      breedte: nums[1]?.value || "",
+      fotos
     });
+  });
+
+  localStorage.setItem("opmetingData", JSON.stringify(data));
 }
-toepassenVergrendeling();
 
-// Element select
-document.getElementById("elementSelect").addEventListener("change", function() {
-    const type = this.value;
-    if (!type) return;
+function loadData(){
+  const raw = localStorage.getItem("opmetingData");
+  if(!raw) return;
+  const data = JSON.parse(raw);
 
-    if (teller >= max) {
-        document.getElementById("error").textContent = "Maximum 10 elementen.";
-        this.value = "";
-        return;
-    }
+  klantnaam.value = data.klant.naam || "";
+  adres.value = data.klant.adres || "";
+  datum.value = data.klant.datum || "";
+  referentie.value = data.klant.ref || "";
+  opmerkingen.value = data.klant.opmerkingen || "";
 
-    teller++;
-    document.getElementById("error").textContent = "";
+  data.elementen.forEach(el=>{
+    addElement(el.type, el.lengte, el.breedte, el.fotos);
+  });
+}
 
-    const blok = document.createElement("div");
-    blok.className = "element-blok";
+/* ======================
+   FOTO COMPRESSIE
+====================== */
+function resizeImage(file, maxW=1200, quality=0.7){
+  return new Promise(res=>{
+    const img=new Image(), r=new FileReader();
+    r.onload=e=>img.src=e.target.result;
+    r.readAsDataURL(file);
+    img.onload=()=>{
+      let s=Math.min(1,maxW/img.width);
+      let c=document.createElement("canvas");
+      c.width=img.width*s; c.height=img.height*s;
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL("image/jpeg",quality));
+    };
+  });
+}
 
-    blok.innerHTML = `
-        <button class="verwijder-element">🗑️</button>
-        <strong>${type}</strong>
+/* ======================
+   ELEMENTEN
+====================== */
+function addElement(type, l="", b="", fotos=[]){
+  if(teller>=max) return;
+  teller++;
 
-        <label>Lengte (cm)</label>
-        <input type="number">
+  const blok=document.createElement("div");
+  blok.className="element-blok";
+  blok.innerHTML=`
+    <button class="verwijder-element">🗑️</button>
+    <strong>${type}</strong>
+    <label>Lengte (cm)</label><input type="number" value="${l}">
+    <label>Breedte (cm)</label><input type="number" value="${b}">
+    <input type="file" class="foto-input" accept="image/*" capture="environment">
+    <div class="foto-knop">📸 Foto maken</div>
+    <div class="foto-lijst"></div>
+  `;
+  container.appendChild(blok);
 
-        <label>Breedte (cm)</label>
-        <input type="number">
+  fotos.forEach(src=>{
+    const d=document.createElement("div");
+    d.className="foto-item";
+    d.innerHTML=`<img src="${src}"><button class="verwijder">×</button>`;
+    blok.querySelector(".foto-lijst").appendChild(d);
+  });
 
-        <input type="file" class="foto-input" accept="image/*" capture="environment">
-        <div class="foto-knop">📸 Foto maken</div>
-        <div class="foto-lijst"></div>
-    `;
+  hernummeren();
+}
 
-    document.getElementById("container").appendChild(blok);
+elementSelect.addEventListener("change",function(){
+  if(!this.value) return;
+  addElement(this.value);
+  this.value="";
+  saveData();
+});
+
+function hernummeren(){
+  const t={};
+  document.querySelectorAll(".element-blok").forEach(b=>{
+    const s=b.querySelector("strong");
+    if(!s||s.innerText==="Klantgegevens") return;
+    let k=s.innerText.replace(/\d+/,'').trim();
+    t[k]=(t[k]||0)+1;
+    s.innerText=`${k} ${t[k]}`;
+  });
+  teller=document.querySelectorAll(".element-blok").length-1;
+  saveData();
+}
+
+/* ======================
+   EVENTS
+====================== */
+document.addEventListener("input", saveData);
+
+document.addEventListener("click",e=>{
+  if(e.target.classList.contains("foto-knop"))
+    e.target.previousElementSibling.click();
+
+  if(e.target.classList.contains("verwijder-element")){
+    e.target.closest(".element-blok").remove();
     hernummeren();
-    this.value = "";
+  }
+
+  if(e.target.classList.contains("verwijder")){
+    e.target.parentElement.remove();
+    saveData();
+  }
 });
 
-// Her-nummering functie
-function hernummeren() {
-    const typeTellers = {};
-    document.querySelectorAll(".element-blok").forEach(blok => {
-        if (blok.querySelector("strong")?.innerText.includes("Klantgegevens")) return;
-        const type = blok.querySelector("strong").innerText.replace(/\d+$/, '').trim();
-        if (!typeTellers[type]) typeTellers[type] = 1;
-        else typeTellers[type]++;
-        blok.querySelector("strong").innerText = `${type} ${typeTellers[type]}`;
-    });
-    teller = document.querySelectorAll(".element-blok").length - 1;
-}
-
-// Foto en verwijderen logica
-document.addEventListener("click", function(e) {
-    // Foto knop
-    if (e.target.classList.contains("foto-knop")) {
-        const input = e.target.previousElementSibling;
-        input.click();
-    }
-
-    // Verwijder element
-    if (e.target.classList.contains("verwijder-element")) {
-        if (vergrendeld) {
-            alert("Opmeting is vergrendeld 🔒");
-            return;
-        }
-        if (confirm("Dit element verwijderen?")) {
-            e.target.closest(".element-blok").remove();
-            hernummeren();
-        }
-    }
+document.addEventListener("change",async e=>{
+  if(e.target.classList.contains("foto-input")){
+    const file=e.target.files[0];
+    if(!file) return;
+    const img=await resizeImage(file);
+    const d=document.createElement("div");
+    d.className="foto-item";
+    d.innerHTML=`<img src="${img}"><button class="verwijder">×</button>`;
+    e.target.nextElementSibling.nextElementSibling.appendChild(d);
+    saveData();
+  }
 });
 
-// Foto preview
-document.addEventListener("change", function(e) {
-    if (e.target.classList.contains("foto-input")) {
-        const lijst = e.target.nextElementSibling.nextElementSibling;
-        const file = e.target.files[0];
-        if (!file) return;
-        const fotoDiv = document.createElement("div");
-        fotoDiv.className = "foto-item";
-        fotoDiv.innerHTML = `<img src="${URL.createObjectURL(file)}"><button class="verwijder">×</button>`;
-        lijst.appendChild(fotoDiv);
-        e.target.value = "";
-    }
-});
+/* ======================
+   PDF
+====================== */
+function maakPDF(){
+  const { jsPDF }=window.jspdf;
+  const pdf=new jsPDF({compress:true});
+  let y=10;
+  const l=t=>{pdf.text(t,10,y);y+=8};
 
-// Verwijder individuele foto
-document.addEventListener("click", function(e) {
-    if (e.target.classList.contains("verwijder")) {
-        if (vergrendeld) {
-            alert("Opmeting is vergrendeld 🔒");
-            return;
-        }
-        e.target.parentElement.remove();
-    }
-});
+  l("KLANTGEGEVENS");
+  l("Naam: "+klantnaam.value);
+  l("Adres: "+adres.value);
+  l("Datum: "+datum.value);
+  l("Referentie: "+referentie.value);
+  l("Opmerkingen: "+opmerkingen.value);
 
-// PDF functie (alles compact)
-async function maakPDF() {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-    let y = 10;
-    function lijn(txt) { pdf.text(txt, 10, y); y += 8; }
+  y+=5; pdf.line(10,y,200,y); y+=10;
 
-    // Klantgegevens
-    lijn("KLANTGEGEVENS");
-    lijn("Naam: " + document.getElementById("klantnaam").value);
-    lijn("Adres: " + document.getElementById("adres").value);
-    lijn("Datum: " + document.getElementById("datum").value);
-    lijn("Referentie: " + document.getElementById("referentie").value);
-    lijn("Opmerkingen: " + document.getElementById("opmerkingen").value);
-    y += 5;
-    pdf.line(10, y, 200, y);
-    y += 10;
+  document.querySelectorAll(".element-blok").forEach(b=>{
+    const s=b.querySelector("strong");
+    if(!s||s.innerText==="Klantgegevens") return;
 
-    // Elementen
-    document.querySelectorAll(".element-blok").forEach(blok => {
-        if (!blok.querySelector("strong") || blok.innerText.includes("Klantgegevens")) return;
-        const type = blok.querySelector("strong").innerText;
-        const inputs = blok.querySelectorAll("input[type='number']");
-        const lengte = inputs[0]?.value || 0;
-        const breedte = inputs[1]?.value || 0;
-        const opp = (lengte * breedte / 10000).toFixed(2);
+    const n=b.querySelectorAll("input[type=number]");
+    l(s.innerText);
+    l("Lengte: "+(n[0]?.value||0)+" cm");
+    l("Breedte: "+(n[1]?.value||0)+" cm");
 
-        lijn(type);
-        lijn("Lengte: " + lengte + " cm");
-        lijn("Breedte: " + breedte + " cm");
-        lijn("Oppervlakte: " + opp + " m²");
-
-        // Foto's
-        const fotos = blok.querySelectorAll("img");
-        for (let img of fotos) {
-            if (y > 250) { pdf.addPage(); y = 10; }
-            pdf.addImage(img.src, "JPEG", 10, y, 60, 45);
-            y += 50;
-        }
-
-        y += 5;
-        pdf.line(10, y, 200, y);
-        y += 10;
+    b.querySelectorAll("img").forEach(i=>{
+      if(y>230){pdf.addPage();y=10;}
+      pdf.addImage(i.src,"JPEG",10,y,60,45,"","FAST");
+      y+=50;
     });
 
-    pdf.save("opmeting.pdf");
+    y+=5; pdf.line(10,y,200,y); y+=10;
+  });
+
+  pdf.save("opmeting.pdf");
 }
+
+/* ======================
+   INIT
+====================== */
+loadData();
 </script>
 
 </body>
 </html>
+
