@@ -87,7 +87,7 @@ function addElement(type, preloadPhotos=[]){
     <input type="number">
     <div class="photo-box">
       <div class="camera-btn">📷</div>
-      <input type="file" accept="image/*" capture hidden>
+      <input type="file" accept="image/*" capture hidden multiple>
       <div class="photos"></div>
     </div>`;
   container.appendChild(el);
@@ -103,26 +103,24 @@ function addElement(type, preloadPhotos=[]){
   const file=el.querySelector("input[type=file]");
   const photos=el.querySelector(".photos");
   cam.onclick=()=>file.click();
-  file.onchange=()=>{
-    const r=new FileReader();
-    r.onload=e=>{
-      const img=new Image();
-      img.onload=()=>{
-        const c=document.createElement("canvas");
-        const s=Math.min(800/img.width,1);
-        c.width=img.width*s; c.height=img.height*s;
-        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+  
+  file.onchange=()=>{ 
+    Array.from(file.files).forEach(f=>{
+      const r=new FileReader();
+      r.onload=e=>{
         const wrap=document.createElement("div");
         wrap.className="photo-wrapper";
-        wrap.innerHTML=`<img src="${c.toDataURL("image/jpeg",0.6)}"><button class="remove-photo">✖</button>`;
+        wrap.innerHTML=`<img src="${e.target.result}"><button class="remove-photo">✖</button>`;
         wrap.querySelector("button").onclick=()=>{ wrap.remove(); autosave(); };
         photos.appendChild(wrap);
         autosave();
-      }; img.src=e.target.result;
-    }; r.readAsDataURL(file.files[0]);
+      };
+      r.readAsDataURL(f);
+    });
+    file.value="";
   };
 
-  // Preload foto's bij restore
+  // preload foto's bij restore
   preloadPhotos.forEach(src=>{
     const wrap=document.createElement("div");
     wrap.className="photo-wrapper";
@@ -210,7 +208,6 @@ function exportPDF(){
     const pageHeight=297;
     let y=20;
 
-    // Logo
     const logoImg=new Image();
     logoImg.onload=function(){
       const maxLogoWidth=40;
