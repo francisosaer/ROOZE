@@ -1,144 +1,45 @@
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-  <meta charset="UTF-8">
-  <title>Opmeet Tool</title>
+const cam = el.querySelector(".camera-btn");
+const fileInput = el.querySelector(".file-input");
+const photoContainer = el.querySelector(".photo-container");
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: auto;
-      padding: 20px;
+cam.onclick = () => fileInput.click();
+
+fileInput.onchange = () => {
+  const f = fileInput.files[0];
+  if(!f) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const imgObj = new Image();
+    imgObj.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxWidth = 800;
+      let scale = Math.min(1, maxWidth / imgObj.width);
+      canvas.width = imgObj.width * scale;
+      canvas.height = imgObj.height * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(imgObj,0,0,canvas.width,canvas.height);
+
+      const imgData = canvas.toDataURL("image/jpeg",0.6);
+
+      const photoWrapper = document.createElement("div");
+      photoWrapper.style.position = "relative";
+      photoWrapper.style.marginTop = "10px";
+
+      const imgEl = document.createElement("img");
+      imgEl.src = imgData;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "✖";
+      removeBtn.className = "remove-photo";
+      removeBtn.onclick = () => photoWrapper.remove();
+
+      photoWrapper.appendChild(imgEl);
+      photoWrapper.appendChild(removeBtn);
+      photoContainer.appendChild(photoWrapper);
     }
+    imgObj.src = e.target.result;
+  }
+  reader.readAsDataURL(f);
+};
 
-    .element {
-      border: 1px solid #ccc;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 6px;
-    }
-
-    label {
-      display: block;
-      margin-top: 8px;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 6px;
-    }
-
-    button {
-      padding: 10px 15px;
-      margin-top: 15px;
-      cursor: pointer;
-    }
-
-    img {
-      max-width: 200px;
-      margin-top: 10px;
-      display: block;
-    }
-  </style>
-</head>
-<body>
-
-<h1>Opmeet Tool</h1>
-
-<div id="elements"></div>
-
-<button id="addElement">+ Element toevoegen</button>
-<p id="limitMessage"></p>
-
-<script>
-  const container = document.getElementById("elements");
-  const addBtn = document.getElementById("addElement");
-  const limitMessage = document.getElementById("limitMessage");
-
-  let totalElements = 0;
-  const maxElements = 30;
-
-  const counters = {
-    Raam: 0,
-    Deur: 0,
-    Poort: 0
-  };
-
-  addBtn.addEventListener("click", () => {
-    if (totalElements >= maxElements) {
-      limitMessage.textContent = "Maximum 30 elementen bereikt.";
-      return;
-    }
-
-    totalElements++;
-
-    const div = document.createElement("div");
-    div.className = "element";
-
-    div.innerHTML = `
-      <h3>Element ${totalElements}</h3>
-
-      <label>Type</label>
-      <select class="type">
-        <option value="">-- kies --</option>
-        <option value="Raam">Raam</option>
-        <option value="Deur">Deur</option>
-        <option value="Poort">Poort</option>
-      </select>
-
-      <div class="details" style="display:none">
-        <p class="label"></p>
-
-        <label>Breedte (cm)</label>
-        <input type="number" min="0">
-
-        <label>Hoogte (cm)</label>
-        <input type="number" min="0">
-
-        <label>Foto nemen (max 2MB)</label>
-        <input type="file" accept="image/*" capture="environment">
-
-        <img class="preview" style="display:none">
-      </div>
-    `;
-
-    container.appendChild(div);
-
-    const typeSelect = div.querySelector(".type");
-    const details = div.querySelector(".details");
-    const label = div.querySelector(".label");
-    const fileInput = div.querySelector("input[type=file]");
-    const preview = div.querySelector(".preview");
-
-    typeSelect.addEventListener("change", () => {
-      if (!typeSelect.value) return;
-
-      counters[typeSelect.value]++;
-      label.textContent = `${typeSelect.value} ${counters[typeSelect.value]}`;
-      details.style.display = "block";
-    });
-
-    fileInput.addEventListener("change", () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Bestand te groot! Maximaal 2MB.");
-        fileInput.value = "";
-        preview.style.display = "none";
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = e => {
-        preview.src = e.target.result;
-        preview.style.display = "block";
-      };
-      reader.readAsDataURL(file);
-    });
-  });
-</script>
-
-</body>
-</html>
