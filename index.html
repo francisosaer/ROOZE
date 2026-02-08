@@ -28,9 +28,12 @@ button { width:100%; padding:18px; font-size:1.6rem; border:none; border-radius:
 .photo-wrapper { position:relative; margin-top:12px; }
 .photo-wrapper img { width:100%; border-radius:10px; }
 .remove-photo { position:absolute; top:8px; right:8px; background:rgba(220,0,0,.9); color:white; border:none; border-radius:50%; width:34px; height:34px; font-size:18px; }
+#refreshWarning { display:none; background:#ff4d4d; color:white; padding:12px; text-align:center; font-size:1.4rem; border-radius:8px; margin-bottom:10px; }
 </style>
 </head>
 <body>
+
+<div id="refreshWarning">⚠️ Let op: bij refresh of sluiten van de pagina kunnen foto’s en gegevens verloren gaan!</div>
 
 <h1>Opmeet Tool</h1>
 
@@ -59,6 +62,7 @@ const addBtn = document.getElementById("addBtn");
 const typeOptions = document.getElementById("typeOptions");
 const clientName = document.getElementById("clientName");
 const projectDate = document.getElementById("projectDate");
+const refreshWarning = document.getElementById("refreshWarning");
 
 let counters = {Raam:0, Deur:0, Poort:0};
 let isDirty = false;
@@ -75,10 +79,8 @@ typeOptions.querySelectorAll("button").forEach(btn=>{
 
 function addElement(type, data=null){
   counters[type]++;
-
   const el = document.createElement("div");
   el.className="element";
-
   el.innerHTML = `
     <div class="element-header">
       <strong>${type} ${counters[type]}</strong>
@@ -97,8 +99,13 @@ function addElement(type, data=null){
   container.appendChild(el);
 
   el.querySelector(".remove-btn").onclick=()=>{el.remove(); save();};
+
   el.querySelectorAll("input").forEach(i=>{
-    i.oninput=()=>{save(); isDirty=true;};
+    i.oninput=()=>{
+      save(); 
+      isDirty=true; 
+      refreshWarning.style.display="block";
+    };
   });
 
   const cam = el.querySelector(".camera-btn");
@@ -173,9 +180,10 @@ window.onload=()=>{
   clientName.value=data.klant;
   projectDate.value=data.datum;
   data.elementen.forEach(e=>addElement(e.type.split(" ")[0],e));
+  if(data.elementen.length) refreshWarning.style.display="block";
 };
 
-// ----------------- Waarschuwing bij refresh -----------------
+// Waarschuwing bij refresh / sluiten
 window.addEventListener("beforeunload", function (e) {
   if(!isDirty) return undefined;
   const confirmationMessage="Weet je zeker dat je de pagina wilt vernieuwen? Alle niet-opgeslagen gegevens kunnen verloren gaan.";
@@ -211,4 +219,5 @@ if("serviceWorker" in navigator){
 
 </body>
 </html>
+
 
