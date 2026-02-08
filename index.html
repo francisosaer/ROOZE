@@ -87,6 +87,7 @@ const maxElements = 30;
 const addBtn = document.getElementById("addElementBtn");
 const elementOptions = document.getElementById("elementOptions");
 
+// Toon knoppen bij "Element toevoegen"
 addBtn.onclick = () => {
   elementOptions.style.display = elementOptions.style.display === "flex" ? "none" : "flex";
 };
@@ -96,6 +97,7 @@ elementOptions.querySelectorAll("button").forEach(btn => {
     const type = btn.dataset.type;
     addElement(type);
     elementOptions.style.display = "none";
+    saveToLocal();
   }
 });
 
@@ -121,7 +123,7 @@ function addElement(type) {
     <input type="number">
     <div class="photo-box">
       <div class="camera-btn">📷</div>
-      <input class="file-input" type="file" accept="image/*" capture="environment">
+      <input class="file-input" type="file" accept="image/*" capture="environment" style="display:none;">
       <div class="photo-container"></div>
     </div>
   `;
@@ -131,9 +133,10 @@ function addElement(type) {
   el.querySelector(".remove-btn").onclick = (event) => {
     event.currentTarget.closest(".element").remove();
     totalElements--;
+    saveToLocal();
   };
 
-  // Foto toevoegen en compressie, meerdere foto’s
+  // Foto toevoegen, meerdere foto's
   const cam = el.querySelector(".camera-btn");
   const fileInput = el.querySelector(".file-input");
   const photoContainer = el.querySelector(".photo-container");
@@ -168,68 +171,72 @@ function addElement(type) {
         const removeBtn = document.createElement("button");
         removeBtn.textContent = "✖";
         removeBtn.className = "remove-photo";
-        removeBtn.onclick = () => photoWrapper.remove();
+        removeBtn.onclick = () => { photoWrapper.remove(); saveToLocal(); }
 
         photoWrapper.appendChild(imgEl);
         photoWrapper.appendChild(removeBtn);
         photoContainer.appendChild(photoWrapper);
+
+        saveToLocal();
       }
       imgObj.src = e.target.result;
     }
     reader.readAsDataURL(f);
   }
+
+  // Opslaan bij input wijziging
+  el.querySelectorAll("input").forEach(input => input.addEventListener("input", saveToLocal));
 }
 
-// Opslaan, laden, PDF
-document.getElementById("saveProject").onclick = () => {
-  const data = { klant: clientName.value, datum: projectDate.value, elementen:[] };
-  document.querySelectorAll(".element").forEach(el=>{
+// Functie voor automatische opslag
+function saveToLocal() {
+  const client = clientName.value;
+  if(!client) return;
+  const data = { klant: client, datum: projectDate.value, elementen: [] };
+  document.querySelectorAll(".element").forEach(el => {
     const label = el.querySelector(".label").textContent;
     const breedte = el.querySelectorAll("input[type=number]")[0].value;
     const hoogte = el.querySelectorAll("input[type=number]")[1].value;
     const fotos = Array.from(el.querySelectorAll(".photo-container img")).map(img=>img.src);
     data.elementen.push({ type: label, breedte, hoogte, fotos });
   });
-  localStorage.setItem(data.klant, JSON.stringify(data));
-  alert("Project opgeslagen");
-};
+  localStorage.setItem(client, JSON.stringify(data));
+}
 
-document.getElementById("loadProject").onclick = () => {
-  const name = prompt("Klantnaam?");
-  const data = JSON.parse(localStorage.getItem(name));
-  if(!data) return alert("Niet gevonden");
-  container.innerHTML="";
-  clientName.value=data.klant;
-  projectDate.value=data.datum;
-
-  data.elementen.forEach(e=>{
-    addElement(e.type.split(' ')[0]);
-    const el = container.lastChild;
-    el.querySelectorAll("input[type=number]")[0].value=e.breedte;
-    el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
-    const photoContainer = el.querySelector(".photo-container");
-    e.fotos.forEach(src=>{
-      const photoWrapper = document.createElement("div");
-      photoWrapper.style.position = "relative";
-      photoWrapper.style.marginTop = "10px";
-
-      const imgEl = document.createElement("img");
-      imgEl.src = src;
-      imgEl.style.width = "100%";
-      imgEl.style.borderRadius = "8px";
-
-      const removeBtn = document.createElement("button");
-      removeBtn.textContent = "✖";
-      removeBtn.className = "remove-photo";
-      removeBtn.onclick = () => photoWrapper.remove();
-
-      photoWrapper.appendChild(imgEl);
-      photoWrapper.appendChild(removeBtn);
-      photoContainer.appendChild(photoWrapper);
+// Bij paginalaad automatisch herstellen
+window.onload = () => {
+  const client = clientName.value;
+  if(!client) return;
+  const saved = JSON.parse(localStorage.getItem(client));
+  if(saved) {
+    projectDate.value = saved.datum;
+    saved.elementen.forEach(e => {
+      addElement(e.type.split(" ")[0]);
+      const el = container.lastChild;
+      el.querySelectorAll("input[type=number]")[0].value = e.breedte;
+      el.querySelectorAll("input[type=number]")[1].value = e.hoogte;
+      const photoContainer = el.querySelector(".photo-container");
+      e.fotos.forEach(src => {
+        const photoWrapper = document.createElement("div");
+        photoWrapper.style.position = "relative";
+        photoWrapper.style.marginTop = "10px";
+        const imgEl = document.createElement("img");
+        imgEl.src = src;
+        imgEl.style.width = "100%";
+        imgEl.style.borderRadius = "8px";
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "✖";
+        removeBtn.className = "remove-photo";
+        removeBtn.onclick = () => { photoWrapper.remove(); saveToLocal(); }
+        photoWrapper.appendChild(imgEl);
+        photoWrapper.appendChild(removeBtn);
+        photoContainer.appendChild(photoWrapper);
+      });
     });
-  });
+  }
 };
 
+// PDF export
 document.getElementById("exportPDF").onclick = () => {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
@@ -257,4 +264,3 @@ document.getElementById("exportPDF").onclick = () => {
 
 </body>
 </html>
-
