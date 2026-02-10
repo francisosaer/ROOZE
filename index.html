@@ -41,6 +41,20 @@ video { width:100%; max-height:300px; border-radius:6px; margin-top:.5rem; }
     <option value="deur">Deur</option>
     <option value="poort">Poort</option>
   </select>
+  <label>Kamer</label>
+  <select id="kamerType">
+    <option value="slaapkamer1">Slaapkamer 1</option>
+    <option value="slaapkamer2">Slaapkamer 2</option>
+    <option value="woonkamer">Woonkamer</option>
+    <option value="keuken">Keuken</option>
+    <option value="eetkamer">Eetkamer</option>
+    <option value="gang">Gang</option>
+    <option value="toilet">Toilet</option>
+    <option value="badkamer">Badkamer</option>
+    <option value="berging">Berging</option>
+    <option value="zolder">Zolder</option>
+    <option value="garage">Garage</option>
+  </select>
   <button onclick="addElement()">Toevoegen</button>
 </div>
 
@@ -69,7 +83,15 @@ function uuid() { return crypto.randomUUID(); }
 
 /* ===== ELEMENTEN ===== */
 function addElement() {
-  project.elementen.push({id:uuid(),type:elementType.value,breedte:"",hoogte:"",fotos:[]});
+  const kamer = document.getElementById("kamerType").value;
+  project.elementen.push({
+    id: uuid(),
+    type: elementType.value,
+    kamer: kamer,
+    breedte: "",
+    hoogte: "",
+    fotos: []
+  });
   save(); render();
 }
 function removeElement(id) { project.elementen = project.elementen.filter(e=>e.id!==id); save(); render(); }
@@ -81,11 +103,10 @@ function openCamera(elementId){
   document.getElementById('cameraModal').style.display='flex';
   const video = document.getElementById('video');
 
-  // Probeer achtercamera eerst
+  // Achtercamera eerst proberen
   navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
     .then(s => { stream = s; video.srcObject = stream; })
     .catch(err => {
-      // fallback: gebruik standaard camera
       navigator.mediaDevices.getUserMedia({ video:true })
         .then(s => { stream = s; video.srcObject = stream; })
         .catch(err2 => { alert("Camera niet beschikbaar: "+err2); closeCamera(); });
@@ -121,38 +142,33 @@ function render(){
   const c=document.getElementById("elementen");
   c.innerHTML="";
 
-  ["raam","deur","poort"].forEach(type=>{
-    // nieuwste element bovenaan
-    project.elementen
-      .filter(e=>e.type===type)
-      .slice() // kopie
-      .reverse()
-      .forEach((el,i)=>{
-        const d=document.createElement("div");
-        d.className="card element";
+  // globale lijst, nieuwste element bovenaan
+  const reversedElements = project.elementen.slice().reverse();
+  const typeCounters = { raam:0, deur:0, poort:0 };
 
-        // correcte nummering
-        const allSameType = project.elementen.filter(e=>e.type===type);
-        const indexNumber = allSameType.indexOf(el) + 1;
+  reversedElements.forEach(el => {
+    typeCounters[el.type]++;
+    const indexNumber = typeCounters[el.type];
 
-        d.innerHTML=`
-          <strong>${type[0].toUpperCase()+type.slice(1)} ${indexNumber}</strong>
-          <label>Breedte (mm)</label>
-          <input type="number" value="${el.breedte}" oninput="updateValue('${el.id}','breedte',this.value)">
-          <label>Hoogte (mm)</label>
-          <input type="number" value="${el.hoogte}" oninput="updateValue('${el.id}','hoogte',this.value)">
-          <button onclick="openCamera('${el.id}')">Camera openen</button>
-          <div class="fotos">
-            ${el.fotos.map((f,idx)=>`
-              <div class="foto">
-                <img src="${f}">
-                <button onclick="project.elementen.find(e=>e.id==='${el.id}').fotos.splice(${idx},1); save(); render();">×</button>
-              </div>`).join("")}
-          </div>
-          <button class="remove" onclick="removeElement('${el.id}')">Element verwijderen</button>
-        `;
-        c.appendChild(d);
-      });
+    const d = document.createElement("div");
+    d.className="card element";
+    d.innerHTML=`
+      <strong>${el.type[0].toUpperCase()+el.type.slice(1)} ${indexNumber} - ${el.kamer}</strong>
+      <label>Breedte (mm)</label>
+      <input type="number" value="${el.breedte}" oninput="updateValue('${el.id}','breedte',this.value)">
+      <label>Hoogte (mm)</label>
+      <input type="number" value="${el.hoogte}" oninput="updateValue('${el.id}','hoogte',this.value)">
+      <button onclick="openCamera('${el.id}')">Camera openen</button>
+      <div class="fotos">
+        ${el.fotos.map((f,idx)=>`
+          <div class="foto">
+            <img src="${f}">
+            <button onclick="project.elementen.find(e=>e.id==='${el.id}').fotos.splice(${idx},1); save(); render();">×</button>
+          </div>`).join("")}
+      </div>
+      <button class="remove" onclick="removeElement('${el.id}')">Element verwijderen</button>
+    `;
+    c.appendChild(d);
   });
 }
 
