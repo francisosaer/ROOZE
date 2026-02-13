@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Opmeting App</title>
+<title>Ramen Blondeel - Opmeting</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -11,18 +11,32 @@
 body{
     font-family: Arial, sans-serif;
     margin:0;
-    padding:15px;
     background:#f4f6f8;
 }
 
-h1{
+header{
+    background:white;
+    padding:15px;
     text-align:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+header img{
+    height:50px;
+}
+
+.container{
+    padding:15px;
+}
+
+h2{
+    margin-top:30px;
 }
 
 input, button{
     width:100%;
-    padding:10px;
-    margin:5px 0;
+    padding:12px;
+    margin:6px 0;
     font-size:16px;
 }
 
@@ -30,7 +44,18 @@ button{
     background:#00468c;
     color:white;
     border:none;
-    border-radius:5px;
+    border-radius:6px;
+}
+
+button.secondary{
+    background:#6c757d;
+}
+
+button.danger{
+    background:#c0392b;
+    width:auto;
+    padding:6px 10px;
+    font-size:13px;
 }
 
 button:disabled{
@@ -50,10 +75,6 @@ button:disabled{
     position:absolute;
     top:10px;
     right:10px;
-    background:#c0392b;
-    width:auto;
-    padding:6px 10px;
-    font-size:13px;
 }
 
 img{
@@ -66,32 +87,61 @@ img{
 
 <body>
 
-<h1>Opmeting</h1>
+<header>
+    <img src="logo.png" alt="Ramen Blondeel">
+</header>
 
-<label>Klant</label>
+<div class="container">
+
+<h2>Nieuw Project</h2>
+
 <input type="text" id="klant" placeholder="Naam klant">
 
-<button onclick="voegElementToe()">Nieuw Element</button>
+<button onclick="nieuwProject()" class="secondary">Nieuw project starten</button>
 
-<div id="container"></div>
+<h2>Elementen</h2>
+
+<button onclick="voegElementToe()">Element toevoegen</button>
+
+<div id="elementContainer"></div>
 
 <button onclick="maakPDF()">Project als PDF</button>
 <button id="mailBtn" onclick="mailProject()" disabled>Project mailen</button>
 
+</div>
+
 <script>
+
+// ===============================
+// PROJECT MANAGEMENT
+// ===============================
+
+function nieuwProject(){
+
+    if(confirm("Nieuw project starten? Huidige gegevens gaan verloren.")){
+
+        document.getElementById("klant").value="";
+        document.getElementById("elementContainer").innerHTML="";
+        document.getElementById("mailBtn").disabled=true;
+    }
+}
+
+// ===============================
+// ELEMENTEN
+// ===============================
 
 function voegElementToe(){
 
-    const container = document.getElementById("container");
+    const container=document.getElementById("elementContainer");
 
-    const div = document.createElement("div");
+    const div=document.createElement("div");
     div.className="element";
 
-    div.innerHTML = `
-        <button class="verwijderBtn" onclick="verwijderElement(this)">Element verwijderen</button>
+    div.innerHTML=`
+        <button class="danger verwijderBtn" onclick="verwijderElement(this)">Element verwijderen</button>
         <h3>Element</h3>
-        <input type="text" placeholder="Breedte">
-        <input type="text" placeholder="Hoogte">
+        <input type="text" placeholder="Breedte (mm)">
+        <input type="text" placeholder="Hoogte (mm)">
         <input type="text" placeholder="Type">
         <input type="file" accept="image/*" capture="environment" onchange="toonFoto(event,this)">
         <img>
@@ -101,36 +151,50 @@ function voegElementToe(){
 }
 
 function verwijderElement(btn){
+
     if(confirm("Bent u zeker dat u dit element wil verwijderen?")){
         btn.parentElement.remove();
     }
 }
 
 function toonFoto(event,input){
-    const reader = new FileReader();
-    reader.onload = function(){
-        input.parentElement.querySelector("img").src = reader.result;
+
+    const reader=new FileReader();
+
+    reader.onload=function(){
+        input.parentElement.querySelector("img").src=reader.result;
     }
+
     reader.readAsDataURL(event.target.files[0]);
 }
 
+// ===============================
+// PDF GENERATIE (RAPPORTSTIJL)
+// ===============================
+
 async function maakPDF(){
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF("p","mm","a4");
+    const { jsPDF }=window.jspdf;
+    const doc=new jsPDF("p","mm","a4");
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth=doc.internal.pageSize.getWidth();
+    const pageHeight=doc.internal.pageSize.getHeight();
 
-    let y = 20;
+    let y=20;
+
+    const klant=document.getElementById("klant").value || "-";
+
+    const vandaag=new Date();
+    const datum=
+        String(vandaag.getDate()).padStart(2,"0")+"/"+
+        String(vandaag.getMonth()+1).padStart(2,"0")+"/"+
+        vandaag.getFullYear();
 
     // HEADER
-    const logo = new Image();
+    const logo=new Image();
     logo.src="logo.png";
 
-    await new Promise(resolve=>{
-        logo.onload=resolve;
-    });
+    await new Promise(resolve=>logo.onload=resolve);
 
     doc.addImage(logo,"PNG",15,12,35,15);
 
@@ -140,14 +204,6 @@ async function maakPDF(){
 
     doc.setFontSize(11);
     doc.setFont("helvetica","normal");
-
-    const klant=document.getElementById("klant").value || "-";
-
-    const vandaag=new Date();
-    const datum=
-        String(vandaag.getDate()).padStart(2,"0")+"/"+
-        String(vandaag.getMonth()+1).padStart(2,"0")+"/"+
-        vandaag.getFullYear();
 
     doc.text("Klant: "+klant,15,38);
     doc.text("Datum: "+datum,15,44);
@@ -193,6 +249,7 @@ async function maakPDF(){
         if(imgEl && imgEl.src){
 
             await new Promise(resolve=>{
+
                 const img=new Image();
                 img.src=imgEl.src;
 
@@ -225,10 +282,11 @@ async function maakPDF(){
         nr++;
     }
 
-    // FOOTER
+    // FOOTER + PAGINANUMMER
     const totalPages=doc.getNumberOfPages();
 
     for(let i=1;i<=totalPages;i++){
+
         doc.setPage(i);
 
         doc.setFontSize(8);
@@ -249,8 +307,7 @@ async function maakPDF(){
         );
     }
 
-    let klantNaam=klant.trim();
-    if(!klantNaam){klantNaam="Onbekende_Klant";}
+    let klantNaam=klant.trim() || "Onbekende_Klant";
     klantNaam=klantNaam.replace(/\s+/g,"_");
 
     doc.save(`Opmeting_${klantNaam}_${vandaag.getFullYear()}-${String(vandaag.getMonth()+1).padStart(2,"0")}-${String(vandaag.getDate()).padStart(2,"0")}.pdf`);
@@ -258,13 +315,15 @@ async function maakPDF(){
     document.getElementById("mailBtn").disabled=false;
 }
 
+// ===============================
+// MAIL
+// ===============================
+
 function mailProject(){
-    alert("Open nu je mailprogramma en voeg de gegenereerde PDF toe als bijlage.");
+    alert("Voeg de gegenereerde PDF toe als bijlage in uw mailprogramma.");
 }
 
 </script>
 
 </body>
 </html>
-
-
