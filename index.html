@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -21,16 +22,14 @@ header{
 
 header img{
     max-width:100px;
-    height:auto;
-    display:block;
     margin:0 auto 5px auto;
+    display:block;
 }
 
 h1{
-    text-align:center;
-    color:rgba(15,36,65);
     font-size:24px;
     margin:0 0 10px 0;
+    color:rgb(15,36,65);
 }
 
 button{
@@ -38,17 +37,18 @@ button{
     margin:5px 2px 5px 0;
     border:none;
     border-radius:5px;
-    background:rgba(15,36,65);
+    background:rgb(15,36,65);
     color:white;
     cursor:pointer;
     font-size:14px;
-    transition:0.2s;
 }
+
+button:hover:enabled{opacity:0.9;}
+
 button:disabled{
     background:#999;
     cursor:not-allowed;
 }
-button:hover:enabled{opacity:0.9;}
 
 select,input,textarea{
     width:100%;
@@ -56,20 +56,29 @@ select,input,textarea{
     margin:5px 0;
     border-radius:5px;
     border:1px solid #ccc;
-    font-size:14px;
 }
 
 .element{
+    position:relative;
     background:white;
     padding:12px;
     margin-top:15px;
     border-radius:8px;
     box-shadow:0 2px 6px rgba(0,0,0,0.08);
-    border-left:5px solid rgba(15,36,65);
+    border-left:5px solid rgb(15,36,65);
 }
 
-.element + .element{
-    margin-top:20px;
+.verwijder-btn{
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:#c0392b;
+    font-size:12px;
+    padding:5px 8px;
+}
+
+.verwijder-btn:hover{
+    background:#a93226;
 }
 
 .photos{
@@ -81,13 +90,9 @@ select,input,textarea{
 
 .photos img{
     width:90px;
-    height:auto;
     border-radius:6px;
-    object-fit:cover;
     border:1px solid #ccc;
 }
-
-canvas{display:none;}
 
 #cameraModal{
     display:none;
@@ -109,10 +114,6 @@ canvas{display:none;}
     border-radius:8px;
 }
 
-#cameraModal button{
-    margin-top:10px;
-}
-
 #mailInstructie{
     font-size:12px;
     color:#555;
@@ -123,7 +124,7 @@ canvas{display:none;}
 <body>
 
 <header>
-    <img src="Logordb.png" alt="Bedrijfslogo">
+    <img src="Logordb.png" alt="Logo">
     <h1>Nieuwe Opmeting</h1>
     <button onclick="nieuwProject()">Nieuw Project</button>
 </header>
@@ -153,10 +154,10 @@ canvas{display:none;}
 
 <div id="lijst"></div>
 
-<button id="pdfBtn" onclick="maakPDF()">Project als PDF</button>
+<button onclick="maakPDF()">Project als PDF</button>
 <button id="mailBtn" onclick="mailProject()" disabled>Project mailen</button>
 <p id="mailInstructie" style="display:none;">
-    Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Mail.
+Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Mail.
 </p>
 
 <!-- CAMERA -->
@@ -166,7 +167,7 @@ canvas{display:none;}
     <button onclick="closeCamera()">Sluiten</button>
 </div>
 
-<canvas id="canvas"></canvas>
+<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
 let project = JSON.parse(localStorage.getItem("project")) || {
@@ -178,7 +179,7 @@ let project = JSON.parse(localStorage.getItem("project")) || {
 let fotosMemory = {};
 let currentElementId=null;
 let stream=null;
-let pdfGemaakt = false;
+let pdfGemaakt=false;
 
 const video=document.getElementById("video");
 const canvas=document.getElementById("canvas");
@@ -209,7 +210,7 @@ function voegElementToe(){
         notitie:""
     };
     project.elementen.unshift(nieuw);
-    fotosMemory[nieuw.id] = [];
+    fotosMemory[nieuw.id]=[];
     saveMetadata();
     render();
 }
@@ -218,19 +219,31 @@ function render(){
     document.getElementById("klant").value=project.klant;
     const lijst=document.getElementById("lijst");
     lijst.innerHTML="";
+
     project.elementen.forEach(el=>{
+        if(!fotosMemory[el.id]) fotosMemory[el.id]=[];
+
         const div=document.createElement("div");
         div.className="element";
+
         div.innerHTML=`
+            <button class="verwijder-btn" onclick="verwijder(${el.id})">
+                Element verwijderen
+            </button>
+
             <strong>${el.type} ${el.nummer} - ${el.kamer}</strong><br>
+
             Breedte (cm):
             <input value="${el.breedte}" onchange="update(${el.id},'breedte',this.value)">
+
             Hoogte (cm):
             <input value="${el.hoogte}" onchange="update(${el.id},'hoogte',this.value)">
+
             Notitie:
             <textarea onchange="update(${el.id},'notitie',this.value)">${el.notitie}</textarea>
+
             <button onclick="openCamera(${el.id})">Foto nemen</button>
-            <button onclick="verwijder(${el.id})">Verwijderen</button>
+
             <div class="photos">
             ${fotosMemory[el.id].map((f,i)=>`
                 <div>
@@ -240,6 +253,7 @@ function render(){
             `).join("")}
             </div>
         `;
+
         lijst.appendChild(div);
     });
 }
@@ -251,6 +265,17 @@ function update(id,veld,waarde){
 }
 
 function verwijder(id){
+    const el=project.elementen.find(e=>e.id===id);
+    if(!el) return;
+
+    const bevestiging=confirm(
+        `Weet je zeker dat je dit element wil verwijderen?\n\n` +
+        `${el.type} ${el.nummer} - ${el.kamer}\n\n` +
+        `Alle ingevoerde maten en foto's gaan verloren.`
+    );
+
+    if(!bevestiging) return;
+
     project.elementen=project.elementen.filter(e=>e.id!==id);
     delete fotosMemory[id];
     saveMetadata();
@@ -268,51 +293,46 @@ async function openCamera(id){
     try{
         stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});
         video.srcObject=stream;
-    }catch(err){alert("Camera niet beschikbaar");}
+    }catch(err){
+        alert("Camera niet beschikbaar");
+    }
 }
 
-// Foto nemen, sluit camera automatisch
 function takePhoto(){
-    const ctx = canvas.getContext("2d");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    const ctx=canvas.getContext("2d");
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
     ctx.drawImage(video,0,0);
-    const data = canvas.toDataURL("image/jpeg",0.5);
+    const data=canvas.toDataURL("image/jpeg",0.5);
     fotosMemory[currentElementId].push(data);
 
     closeCamera();
 
-    setTimeout(() => {
-        render();
-    }, 150);
+    setTimeout(()=>{render();},150);
 }
 
 function closeCamera(){
     cameraModal.style.display="none";
-    if(stream){
-        stream.getTracks().forEach(track=>track.stop());
-    }
+    if(stream) stream.getTracks().forEach(track=>track.stop());
 }
 
-// ✅ PDF export
 async function maakPDF(){
-
-    if(project.elementen.length === 0){
+    if(project.elementen.length===0){
         alert("Geen elementen om te exporteren.");
         return;
     }
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
-    let y = 15;
+    const { jsPDF }=window.jspdf;
+    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    let y=15;
 
     doc.setFontSize(16);
     doc.text("Nieuwe Opmeting",15,y); y+=10;
     doc.setFontSize(12);
-    doc.text("Klant: " + document.getElementById("klant").value,15,y); y+=10;
+    doc.text("Klant: "+document.getElementById("klant").value,15,y); y+=10;
 
     for(const el of project.elementen){
-        if(y > 260){doc.addPage(); y=15;}
+        if(y>260){doc.addPage(); y=15;}
         doc.setFontSize(13);
         doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,15,y); y+=7;
         doc.setFontSize(11);
@@ -320,6 +340,7 @@ async function maakPDF(){
         doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=6;
         if(el.notitie){doc.text(`Notitie: ${el.notitie}`,15,y); y+=6;}
         y+=3;
+
         for(const foto of fotosMemory[el.id]){
             if(y>240){doc.addPage(); y=15;}
             doc.addImage(foto,"JPEG",15,y,70,50,undefined,"FAST");
@@ -328,38 +349,34 @@ async function maakPDF(){
         y+=5;
     }
 
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Nieuwe_Opmeting.pdf";
+    const blob=doc.output("blob");
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="Nieuwe_Opmeting.pdf";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    // PDF gemaakt → mail knop activeren
-    pdfGemaakt = true;
-    document.getElementById("mailBtn").disabled = false;
-    document.getElementById("mailInstructie").style.display = "block";
+    pdfGemaakt=true;
+    document.getElementById("mailBtn").disabled=false;
+    document.getElementById("mailInstructie").style.display="block";
 }
 
-// Mail functie (mailto)
 function mailProject(){
     if(!pdfGemaakt){
         alert("Maak eerst de PDF van het project.");
         return;
     }
-    window.location.href = "mailto:?subject=Nieuwe Opmeting&body=PDF is gedownload. Voeg deze toe vanuit je bestanden-app.";
+    window.location.href="mailto:?subject=Nieuwe Opmeting&body=PDF is gedownload. Voeg deze toe vanuit je bestanden-app.";
 }
 
-// Waarschuwing bij refresh
-window.addEventListener("beforeunload", function(e){
-    let hasFotos = Object.values(fotosMemory).some(arr=>arr.length>0);
+window.addEventListener("beforeunload",function(e){
+    let hasFotos=Object.values(fotosMemory).some(arr=>arr.length>0);
     if(hasFotos){
         e.preventDefault();
-        e.returnValue="LET OP: Alle foto's gaan verloren bij refresh. Weet je het zeker?";
-        return e.returnValue;
+        e.returnValue="LET OP: Alle foto's gaan verloren bij refresh.";
     }
 });
 
@@ -372,5 +389,4 @@ render();
 </script>
 </body>
 </html>
-
 
