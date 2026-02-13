@@ -145,7 +145,7 @@ async function maakPDF(){
     
     let y=15;
 
-    async function addHeader(cover=false){
+    async function addHeader(){
         const imgLogo = new Image(); imgLogo.src = "Logordb.png";
         await new Promise(r=>{imgLogo.onload=()=>r();});
         const maxLogoH=25; let w=imgLogo.width; let h=imgLogo.height; const ratio=w/h;
@@ -156,13 +156,8 @@ async function maakPDF(){
         doc.setFontSize(10); doc.setTextColor(0,0,0);
         diensten.forEach((d,i)=>doc.text(d,15+w+5,12+i*4));
 
-        if(!cover){ // geen blauwe coverblok op overige pagina's
-            doc.setFontSize(16); doc.setTextColor(15,36,65);
-            doc.text("Nieuwe Opmeting",105,22,{align:"center"});
-            doc.setFontSize(12); doc.setTextColor(0,0,0);
-            doc.text("Klant: "+klantNaam,105,28,{align:"center"});
-        }
-
+        doc.setFontSize(12); doc.setTextColor(0,0,0);
+        doc.text("Klant: "+klantNaam,105,22,{align:"center"});
         const datumText="Datum: "+formatDate();
         doc.text(datumText,200,15,{align:"right"});
 
@@ -171,13 +166,10 @@ async function maakPDF(){
     }
 
     // Coverpagina
-    await addHeader(true);
-    doc.setFillColor(220,230,241); doc.rect(10,40,190,20,'F');
-    doc.setFontSize(16); doc.setTextColor(15,36,65); doc.text("Nieuwe Opmeting",105,55,{align:"center"});
-    doc.setFontSize(12); doc.setTextColor(0,0,0); doc.text("Klant: "+klantNaam,105,61,{align:"center"});
+    await addHeader();
 
     // Overzicht aantal elementen
-    y=70;
+    y=45;
     const typeCounts={Raam:0,Deur:0,Poort:0};
     project.elementen.forEach(el=>typeCounts[el.type]++);
     doc.setFontSize(14); doc.setTextColor(0,0,0);
@@ -188,13 +180,13 @@ async function maakPDF(){
     });
 
     // Elementenpagina's
-    doc.addPage(); y=15; await addHeader(false);
+    doc.addPage(); y=15; await addHeader();
 
     for(const el of project.elementen){
         const fotosHeight=fotosMemory[el.id].length*55;
         const textHeight=7+6+6+(el.notitie?6:0)+3;
         const neededHeight=textHeight+fotosHeight+8;
-        if(y+neededHeight>280){doc.addPage(); y=15; await addHeader(false);}
+        if(y+neededHeight>280){doc.addPage(); y=15; await addHeader();}
         doc.setDrawColor(150); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
         doc.setFontSize(13); doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,15,y); y+=7;
         doc.setFontSize(11); doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=6;
@@ -205,7 +197,7 @@ async function maakPDF(){
             let fw=foto.width; let fh=foto.height; const fratio=fw/fh;
             const maxFW=70; const maxFH=50;
             if(fw>maxFW){fw=maxFW; fh=fw/fratio;} if(fh>maxFH){fh=maxFH; fw=fh*fratio;}
-            if(y+fh>280){doc.addPage(); y=15; await addHeader(false);}
+            if(y+fh>280){doc.addPage(); y=15; await addHeader();}
             doc.addImage(foto,"JPEG",15,y,fw,fh); y+=fh+5;
         }
         y+=5;
