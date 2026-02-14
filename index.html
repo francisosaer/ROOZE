@@ -186,11 +186,7 @@ window.addEventListener('resize', setRealViewportHeight);
 window.addEventListener('load', setRealViewportHeight);
 
 /* ===== Project data ===== */
-let project = JSON.parse(localStorage.getItem("project")) || {
-    klant:"",
-    elementen:[],
-};
-
+let project = JSON.parse(localStorage.getItem("project")) || { klant:"", elementen:[] };
 let fotosMemory = {};
 let currentElementId = null;
 let pdfGemaakt = false;
@@ -224,19 +220,24 @@ function voegElementToe(){
     render();
 }
 
-/* ===== Render functie met correcte nummering ===== */
+/* ===== Render functie met correcte oplopende nummering ===== */
 function render(){
     document.getElementById("klant").value = project.klant;
     const lijst = document.getElementById("lijst");
     lijst.innerHTML = "";
 
-    // Nummering per type opnieuw berekenen
+    // Nummering per type berekenen, van onder naar boven (voor oplopende nummering)
     let typeCount = {Raam:0,Deur:0,Poort:0};
-
-    project.elementen.forEach(el=>{
+    let nummering = {};
+    const reversed = [...project.elementen].reverse(); // oudste eerst
+    reversed.forEach(el=>{
         typeCount[el.type]++;
-        const nummer = typeCount[el.type];
+        nummering[el.id] = typeCount[el.type];
+    });
 
+    // Render elementen (nieuwste bovenaan)
+    project.elementen.forEach(el=>{
+        const nummer = nummering[el.id];
         if(!fotosMemory[el.id]) fotosMemory[el.id] = [];
 
         const div = document.createElement("div");
@@ -327,16 +328,51 @@ function closeCamera(){
     if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());
 }
 
-/* ===== PDF & Mail placeholders ===== */
+/* ===== PDF & Mail functionaliteit zoals in 6d ===== */
 function maakPDF(){
-    alert("PDF functie placeholder – behoud 6d functionaliteit");
+    if(!project.klant){
+        alert("Geef eerst de naam van de klant in.");
+        return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text(`Nieuwe Opmeting: ${project.klant}`, 15, 20);
+
+    let y = 30;
+    project.elementen.slice().reverse().forEach(el=>{ // oudste eerst in PDF
+        doc.setFontSize(14);
+        const nummer = el.type + " " + (() => {
+            let count=0;
+            for(const e of project.elementen){ if(e.type===el.type && project.elementen.indexOf(e)<=project.elementen.indexOf(el)) count++; }
+            return count;
+        })();
+        doc.text(`${nummer} - ${el.kamer}`,15,y);
+        y+=7;
+        if(el.breedte) { doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=7; }
+        if(el.hoogte) { doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=7; }
+        if(el.notitie) { doc.text(`Notitie: ${el.notitie}`,15,y); y+=7; }
+        fotosMemory[el.id].forEach(f=>{
+            if(y>250){ doc.addPage(); y=20; }
+            doc.addImage(f,'JPEG',15,y,50,50);
+            y+=55;
+        });
+        y+=10;
+    });
+
+    const fileName = `${project.klant.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
     pdfGemaakt=true;
     document.getElementById("mailBtn").disabled=false;
+    alert("PDF opgeslagen. Nu kan je project mailen.");
 }
 
 function mailProject(){
     if(!pdfGemaakt){ alert("Maak eerst de PDF."); return; }
-    alert("Mail functie placeholder – behoud 6d functionaliteit");
+    const subject = encodeURIComponent(`Nieuwe Opmeting: ${project.klant}`);
+    const body = encodeURIComponent(`Zie bijlage voor het project: ${project.klant}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
 }
 
 /* ===== Klant naam update ===== */
