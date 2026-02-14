@@ -4,51 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nieuwe Opmeting</title>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body{
-  font-family:Arial,sans-serif;
-  margin:0;
-  padding:15px;
-  background:#f4f6f8;
+    font-family:Arial,sans-serif;
+    margin:0;
+    padding:15px;
+    background:#f4f6f8;
 }
 
-header{text-align:center;margin-bottom:10px;}
-header img{max-width:60px;display:block;margin:0 auto 5px auto;}
-h1{font-size:24px;margin:0 0 10px 0;color:rgb(15,36,65);}
+/* ================= HEADER ================= */
+
+header{
+    text-align:center;
+    margin-bottom:10px;
+}
+
+header img{
+    max-width:50px;
+    display:block;
+    margin:0 auto 5px auto;
+}
+
+h1{
+    font-size:24px;
+    margin:0 0 10px 0;
+    color:rgb(15,36,65);
+}
 
 button{
-  padding:6px 12px;
-  margin:5px 2px;
-  border:none;
-  border-radius:5px;
-  background:rgb(15,36,65);
-  color:white;
-  cursor:pointer;
-  font-size:14px;
+    padding:6px 12px;
+    margin:5px 2px;
+    border:none;
+    border-radius:5px;
+    background:rgb(15,36,65);
+    color:white;
+    cursor:pointer;
+    font-size:14px;
 }
 
 button:hover:enabled{opacity:0.9;}
-button:disabled{background:#999;}
+button:disabled{background:#999;cursor:not-allowed;}
 
 select,input,textarea{
-  width:100%;
-  padding:6px;
-  margin:5px 0;
-  border-radius:5px;
-  border:1px solid #ccc;
+    width:100%;
+    padding:6px;
+    margin:5px 0;
+    border-radius:5px;
+    border:1px solid #ccc;
 }
 
+/* ================= ELEMENT BLOKKEN ================= */
+
 .element{
-  position:relative;
-  background:white;
-  padding:12px;
-  margin-top:15px;
-  border-radius:8px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-  border-left:6px solid rgb(15,36,65);
+    position:relative;
+    background:white;
+    padding:12px;
+    margin-top:15px;
+    border-radius:8px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08);
+    border-left:6px solid rgb(15,36,65);
 }
 
 .raam{border-left-color:#2980b9;}
@@ -56,112 +72,101 @@ select,input,textarea{
 .poort{border-left-color:#8e44ad;}
 
 .verwijder-btn{
-  position:absolute;
-  top:10px;
-  right:10px;
-  background:#c0392b;
-  font-size:12px;
-  padding:5px 8px;
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:#c0392b;
+    font-size:12px;
+    padding:5px 8px;
 }
 
 .photos{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  margin-top:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:10px;
 }
 
 .photos img{
-  width:90px;
-  border-radius:6px;
-  border:1px solid #ccc;
+    width:90px;
+    border-radius:6px;
+    border:1px solid #ccc;
 }
 
-/* ================= CAMERA ================= */
+/* ================= CAMERA FIX ================= */
 
+/* 100vh mobile fix */
 #cameraModal{
-  display:none;
-  position:fixed;
-  top:0;left:0;
-  width:100vw;
-  height:calc(var(--vh) * 100);
-  background:black;
-  z-index:1000;
-  overflow:hidden;
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100vw;
+    height:calc(var(--vh) * 100);
+    background:rgba(0,0,0,0.95);
+    z-index:1000;
+    overflow:hidden;
 }
 
 #cameraModal video{
-  position:absolute;
-  top:0;left:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
 }
 
-#closeCameraBtn{
-  position:absolute;
-  top:20px;
-  right:20px;
-  background:rgba(0,0,0,0.5);
-  border:none;
-  color:white;
-  font-size:18px;
-  padding:8px 12px;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-#cameraOverlay{
-  position:absolute;
-  bottom:0;
-  left:0;
-  width:100%;
-  height:140px;
-  background:linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-  display:flex;
-  justify-content:center;
-  align-items:center;
+/* Overlay knoppen */
+#cameraModal button{
+    position:absolute;
+    z-index:1010;
+    padding:12px 18px;
+    border-radius:6px;
+    border:none;
+    background:rgba(15,36,65,0.85);
+    color:white;
+    font-size:16px;
 }
 
 #takePhotoBtn{
-  width:75px;
-  height:75px;
-  border-radius:50%;
-  border:6px solid white;
-  background:white;
-  cursor:pointer;
+    bottom:30px;
+    left:50%;
+    transform:translateX(-50%);
 }
 
-#takePhotoBtn:active{
-  transform:scale(0.92);
+#closeCameraBtn{
+    top:20px;
+    right:20px;
+}
+
+#mailInstructie{
+    font-size:12px;
+    color:#555;
+    margin-top:5px;
 }
 </style>
 </head>
-
 <body>
 
 <header>
-<img src="Logordb.png">
+<img src="Logordb.png" alt="Logo">
 <h1>Nieuwe Opmeting</h1>
 <button onclick="nieuwProject()">Nieuw Project</button>
 </header>
 
 <input type="text" id="klant" placeholder="Naam klant">
 
-<h3>Kamer</h3>
+<h3>Kamer kiezen</h3>
 <select id="kamer">
 <option>Slaapkamer 1</option>
 <option>Slaapkamer 2</option>
 <option>Keuken</option>
-<option>Eetplaats</option>
 <option>Living</option>
-<option>Gang</option>
-<option>Toilet</option>
-<option>Badkamer</option>
 <option>Garage</option>
 </select>
 
-<h3>Element</h3>
+<h3>Kies element</h3>
 <select id="elementType">
 <option value="Raam">Raam</option>
 <option value="Deur">Deur</option>
@@ -172,157 +177,173 @@ select,input,textarea{
 
 <div id="lijst"></div>
 
+<button onclick="maakPDF()">Project als PDF</button>
+<button id="mailBtn" onclick="mailProject()" disabled>Project mailen</button>
+
+<p id="mailInstructie" style="display:none;">
+Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Mail.
+</p>
+
 <!-- CAMERA -->
 <div id="cameraModal">
-  <video id="video" autoplay playsinline></video>
-  <button id="closeCameraBtn" onclick="closeCamera()">✕</button>
-  <div id="cameraOverlay">
-      <button id="takePhotoBtn" onclick="takePhoto()"></button>
-  </div>
+<video id="video" autoplay playsinline></video>
+<button id="takePhotoBtn" onclick="takePhoto()">Foto maken</button>
+<button id="closeCameraBtn" onclick="closeCamera()">Sluiten</button>
 </div>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
 
-/* ===== Fix mobiele viewport ===== */
+/* ========== MOBILE 100VH FIX ========== */
+
 function setRealViewportHeight(){
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', `${vh}px`);
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
+
 window.addEventListener('resize', setRealViewportHeight);
 window.addEventListener('load', setRealViewportHeight);
 
-/* ===== DATA ===== */
-let project = {klant:"",elementen:[]};
+/* ========== PROJECT DATA ========== */
+
+let project = JSON.parse(localStorage.getItem("project")) || {
+    klant:"",
+    elementen:[],
+    teller:{Raam:0,Deur:0,Poort:0}
+};
+
 let fotosMemory = {};
-let currentElementId=null;
+let currentElementId = null;
+let pdfGemaakt = false;
 
-const video=document.getElementById("video");
-const canvas=document.getElementById("canvas");
-const cameraModal=document.getElementById("cameraModal");
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const cameraModal = document.getElementById("cameraModal");
 
-/* ===== HERNUMMERING ===== */
-function hernummerElementen(){
-  const types=["Raam","Deur","Poort"];
+/* ========== FUNCTIES ========== */
 
-  types.forEach(type=>{
-    let teller=1;
-
-    project.elementen
-      .filter(el=>el.type===type)
-      .forEach(el=>{
-        el.nummer=teller;
-        teller++;
-      });
-  });
+function saveMetadata(){
+    localStorage.setItem("project", JSON.stringify(project));
 }
 
-/* ===== FUNCTIES ===== */
-
 function nieuwProject(){
-  if(confirm("Nieuw project starten?")){
-    location.reload();
-  }
+    if(confirm("Nieuw project starten? Alles wordt gewist.")){
+        localStorage.removeItem("project");
+        location.reload();
+    }
 }
 
 function voegElementToe(){
-  const type=document.getElementById("elementType").value;
-  const kamer=document.getElementById("kamer").value;
+    const type = document.getElementById("elementType").value;
+    const kamer = document.getElementById("kamer").value;
 
-  const nieuw={
-    id:Date.now(),
-    type:type,
-    nummer:0,
-    kamer:kamer,
-    breedte:"",
-    hoogte:"",
-    notitie:""
-  };
+    project.teller[type]++;
 
-  project.elementen.push(nieuw);
-  fotosMemory[nieuw.id]=[];
+    const nieuw = {
+        id:Date.now(),
+        type:type,
+        nummer:project.teller[type],
+        kamer:kamer,
+        breedte:"",
+        hoogte:"",
+        notitie:""
+    };
 
-  hernummerElementen();
-  render();
-}
+    project.elementen.unshift(nieuw);
+    fotosMemory[nieuw.id] = [];
 
-function verwijder(id){
-  project.elementen = project.elementen.filter(e=>e.id!==id);
-  delete fotosMemory[id];
-
-  hernummerElementen();
-  render();
+    saveMetadata();
+    render();
 }
 
 function render(){
-  const lijst=document.getElementById("lijst");
-  lijst.innerHTML="";
+    document.getElementById("klant").value = project.klant;
+    const lijst = document.getElementById("lijst");
+    lijst.innerHTML = "";
 
-  project.elementen.forEach(el=>{
-    const div=document.createElement("div");
+    project.elementen.forEach(el => {
 
-    let kleurClass="";
-    if(el.type==="Raam") kleurClass="raam";
-    if(el.type==="Deur") kleurClass="deur";
-    if(el.type==="Poort") kleurClass="poort";
+        if(!fotosMemory[el.id]) fotosMemory[el.id] = [];
 
-    div.className="element "+kleurClass;
+        const div = document.createElement("div");
+        div.className = "element";
 
-    div.innerHTML=`
-      <button class="verwijder-btn" onclick="verwijder(${el.id})">X</button>
-      <strong>${el.type} ${el.nummer} - ${el.kamer}</strong>
-      <input placeholder="Breedte cm">
-      <input placeholder="Hoogte cm">
-      <textarea placeholder="Notitie"></textarea>
-      <button onclick="openCamera(${el.id})">Foto nemen</button>
-      <div class="photos">
-      ${fotosMemory[el.id].map(f=>`<img src="${f}">`).join("")}
-      </div>
-    `;
-
-    lijst.appendChild(div);
-  });
+        div.innerHTML = `
+            <strong>${el.type} ${el.nummer} - ${el.kamer}</strong><br>
+            Breedte (cm):
+            <input value="${el.breedte}" onchange="update(${el.id},'breedte',this.value)">
+            Hoogte (cm):
+            <input value="${el.hoogte}" onchange="update(${el.id},'hoogte',this.value)">
+            Notitie:
+            <textarea onchange="update(${el.id},'notitie',this.value)">${el.notitie}</textarea>
+            <button onclick="openCamera(${el.id})">Foto nemen</button>
+            <div class="photos">
+                ${fotosMemory[el.id].map(f=>`<img src="${f}">`).join("")}
+            </div>
+        `;
+        lijst.appendChild(div);
+    });
 }
 
-/* ===== CAMERA ===== */
+function update(id, veld, waarde){
+    const el = project.elementen.find(e=>e.id===id);
+    el[veld] = waarde;
+    saveMetadata();
+}
 
 async function openCamera(id){
-  currentElementId=id;
-  cameraModal.style.display="block";
+    currentElementId = id;
+    cameraModal.style.display = "block";
 
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:"environment"}}
-    });
-    video.srcObject=stream;
-  }catch(e){
-    alert("Camera niet beschikbaar");
-  }
+    try{
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video:{facingMode:{ideal:"environment"}}
+        });
+        video.srcObject = stream;
+    }catch(err){
+        alert("Camera niet beschikbaar");
+    }
 }
 
 function takePhoto(){
-  const ctx=canvas.getContext("2d");
-  canvas.width=video.videoWidth;
-  canvas.height=video.videoHeight;
-  ctx.drawImage(video,0,0);
+    const ctx = canvas.getContext("2d");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-  const data=canvas.toDataURL("image/jpeg",0.6);
-  fotosMemory[currentElementId].push(data);
+    ctx.drawImage(video,0,0);
 
-  closeCamera();
-  render();
+    const data = canvas.toDataURL("image/jpeg",0.6);
+    fotosMemory[currentElementId].push(data);
+
+    closeCamera();
+    setTimeout(render,150);
 }
 
 function closeCamera(){
-  cameraModal.style.display="none";
-  if(video.srcObject){
-    video.srcObject.getTracks().forEach(track=>track.stop());
-  }
+    cameraModal.style.display="none";
+    if(video.srcObject){
+        video.srcObject.getTracks().forEach(track=>track.stop());
+    }
 }
+
+function mailProject(){
+    if(!pdfGemaakt){
+        alert("Maak eerst de PDF.");
+        return;
+    }
+    window.location.href="mailto:?subject=Nieuwe Opmeting";
+}
+
+document.getElementById("klant").addEventListener("input",e=>{
+    project.klant = e.target.value;
+    saveMetadata();
+});
 
 render();
 
 </script>
 </body>
 </html>
+
+
