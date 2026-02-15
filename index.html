@@ -157,14 +157,26 @@ async function maakPDF(){
     const doc = new jsPDF();
 
     // Coverpagina
-    const logo = new Image();
-    logo.src='Logordb.png';
-    logo.onload = async function(){
-        const maxLogoW=40,maxLogoH=40;
-        let w=maxLogoW,h=maxLogoH;
-        const ratio=logo.width/logo.height;
-        if(ratio>1){ h=maxLogoW/ratio; } else { w=maxLogoH*ratio; }
-        doc.addImage(logo,'PNG',15,15,w,h);
+    // LOGO's laden
+const logos = ['Logordb.png','reynaers.png','gealan.png'];
+let xStart = 15; // begin links
+const maxLogoH = 40; // maximale hoogte
+for(const src of logos){
+    const img = await loadImagePromise(src);
+    let w = img.width, h = img.height;
+    const ratio = w / h;
+    if(h > maxLogoH){ h = maxLogoH; w = maxLogoH * ratio; } // proportioneel schalen
+    doc.addImage(img, 'PNG', xStart, 15, w, h);
+    xStart += w + 10; // 10mm ruimte tussen logo's
+}
+
+// Tekst iets naar rechts plaatsen om niet te overlappen
+doc.setFontSize(12); doc.setTextColor(15,36,65);
+doc.text("Ramen en deuren in hout / pvc / aluminium", xStart, 25);
+doc.text("Rolluiken", xStart, 32);
+doc.text("Zonwering", xStart, 39);
+doc.text("Garagepoorten", xStart, 46);
+
 
         doc.setFontSize(12); doc.setTextColor(15,36,65);
         doc.text("Ramen en deuren in hout / pvc / aluminium", 60,25);
@@ -242,3 +254,4 @@ render();
 </script>
 </body>
 </html>
+
