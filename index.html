@@ -140,138 +140,115 @@ async function openCamera(id){ currentElementId=id; cameraModal.style.display="b
 function takePhoto(){ const ctx=canvas.getContext("2d"); canvas.width=video.videoWidth; canvas.height=video.videoHeight; ctx.drawImage(video,0,0); const data=canvas.toDataURL("image/jpeg",0.6); fotosMemory[currentElementId].push(data); closeCamera(); setTimeout(render,150);}
 function closeCamera(){ cameraModal.style.display="none"; if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());}
 
-/* ===== PDF functie met correct overzicht + scheidingslijn + nummering + zwarte tekst ===== */
-async function maakPDF() {
+/* ===== PDF Functie volledige stabiele versie met alle aanpassingen ===== */
+function loadImagePromise(src) {
+    return new Promise((resolve)=>{ const img=new Image(); img.src=src; img.onload=()=>resolve(img); });
+}
+
+async function maakPDF(){
+    if(!project.klant){ alert("Geef eerst de naam van de klant in."); return;}
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.setTextColor(0,0,0);
 
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
+    const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
-    const bottomMargin = 20;
 
-    function loadImagePromise(src){
-        return new Promise(resolve=>{
-            const img = new Image();
-            img.src = src;
-            img.onload = ()=>resolve(img);
-        });
-    }
-
-    // ===== COVERPAGINA =====
+    // --- Coverpagina ---
     const logo = await loadImagePromise('Logordb.png');
-    const logoWidth = 40;
-    const logoHeight = logoWidth / (logo.width / logo.height);
-    doc.addImage(logo,'PNG',margin,10,logoWidth,logoHeight);
+    let logoW = 40, logoH = 40;
+    const ratio = logo.width/logo.height;
+    if(ratio>1){ logoH = logoW/ratio; } else { logoW = logoH*ratio; }
+    doc.addImage(logo,'PNG',margin,15,logoW,logoH);
 
-    doc.setFontSize(20);
-    doc.text("Nieuwe Opmeting",pageWidth/2,50,{align:"center"});
-    doc.setFontSize(16);
-    doc.text(project.klant,pageWidth/2,60,{align:"center"});
+    doc.setFontSize(12); doc.setTextColor(0);
+    doc.text("Ramen en deuren in hout / pvc / aluminium", 60,25);
+    doc.text("Rolluiken",60,32);
+    doc.text("Zonwering",60,39);
+    doc.text("Garagepoorten",60,46);
 
-    doc.setFontSize(14);
-    // Overzicht aantal elementen titel
-    doc.text("Overzicht aantal elementen",pageWidth/2,75,{align:"center"});
-    let yEl = 80;
-
-    const mapping = { "Raam":"Ramen","Deur":"Deuren","Poort":"Poorten" };
-    for(const t of ["Raam","Deur","Poort"]){
-        const aantal = project.elementen.filter(e=>e.type===t).length;
-        if(aantal>0){
-            doc.text(`${mapping[t]}: ${aantal}`,pageWidth/2,yEl,{align:"center"});
-            yEl += 8;
-        }
-    }
-
-    doc.setFontSize(12);
-    doc.text(`Datum: ${new Date().toLocaleDateString()}`,pageWidth-60,15);
+    doc.setFontSize(20); doc.text("Nieuwe Opmeting",pageWidth/2,70,{align:"center"});
+    doc.setFontSize(16); doc.text(`${project.klant}`,pageWidth/2,80,{align:"center"});
+    doc.setFontSize(12); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
 
     // Partnerlogo's
-    const reynaersLogo = await loadImagePromise('reynaers.png');
-    const gealanLogo = await loadImagePromise('gealan.png');
-    const partnerWidth = 35;
-    let partnerY = 22;
-    let h1 = partnerWidth / (reynaersLogo.width / reynaersLogo.height);
-    doc.addImage(reynaersLogo,'PNG',pageWidth-50,partnerY,partnerWidth,h1);
-    let h2 = partnerWidth / (gealanLogo.width / gealanLogo.height);
-    doc.addImage(gealanLogo,'PNG',pageWidth-50,partnerY+18,partnerWidth,h2);
+    const reynaers = await loadImagePromise('reynaers.png');
+    const gealan = await loadImagePromise('gealan.png');
+    const partnerW = 50;
+    const space = 5;
+    const reynaersH = partnerW / (reynaers.width/reynaers.height);
+    const gealanH = partnerW / (gealan.width/gealan.height);
+    const logosX = pageWidth - margin - partnerW;
+    let logosY = 22;
+    doc.addImage(reynaers,'PNG',logosX,logosY,partnerW,reynaersH);
+    doc.addImage(gealan,'PNG',logosX,logosY+reynaersH+space,partnerW,gealanH);
 
-    // ===== ELEMENTEN (pagina 2+) =====
-    yEl = 20;
+    // Overzicht aantal elementen
+    doc.setFontSize(14);
+    doc.text("Overzicht aantal elementen",pageWidth/2,95,{align:"center"});
+    let yEl=105;
+
+    const mapping = { Raam:"Ramen", Deur:"Deuren", Poort:"Poorten" };
+    ["Raam","Deur","Poort"].forEach(t=>{
+        const aantal = project.elementen.filter(e=>e.type===t).length;
+        if(aantal>0){ doc.text(`${mapping[t]}: ${aantal}`,pageWidth/2,yEl,{align:"center"}); yEl+=8; }
+    });
+
+    // --- Pagina 2: elementen ---
     doc.addPage();
-
-    const lineHeight = 6;
-    const fotoMaxWidth = 50;
-
-    // Voor correcte nummering per soort
-    const typeCounters = { Raam:0, Deur:0, Poort:0 };
+    let y=20;
+    let pageNum=2;
+    const header=()=>{
+        doc.setFontSize(12); doc.text(`Nieuwe Opmeting: ${project.klant}`,margin,10);
+        doc.text(`Datum: ${new Date().toLocaleDateString()}`,pageWidth-50,10);
+        y=20;
+    }
+    header();
 
     for(const el of project.elementen.slice().reverse()){
-        typeCounters[el.type] += 1;
-        const elementTitel = `${el.type} ${typeCounters[el.type]} - ${el.kamer}`;
+        const nummer = el.type+" "+(()=>{let count=0; for(const e of project.elementen){if(e.type===el.type && project.elementen.indexOf(e)<=project.elementen.indexOf(el)) count++;} return count;})();
 
-        let blockHeight = 0;
-        const fotoBlocks = [];
+        // Scheidingslijn
+        doc.setDrawColor(0); doc.setLineWidth(0.5);
+        if(y>20) doc.line(margin,y,pageWidth-margin,y); 
+        y+=5;
+
+        doc.setFontSize(14);
+        doc.text(`${nummer} - ${el.kamer}`,margin,y);
+        y+=7;
+
+        let fotoX=margin;
+        const maxFotoW=50,maxFotoH=50;
         for(const f of fotosMemory[el.id]){
             const img = await loadImagePromise(f);
-            let w = fotoMaxWidth;
-            let h = w / (img.width / img.height);
-            fotoBlocks.push({src:f,w,h});
-            if(h>blockHeight) blockHeight = h;
+            let w = img.width, h = img.height;
+            const r = w/h;
+            if(w>h){ if(w>maxFotoW){ w=maxFotoW; h=maxFotoW/r; } } else { if(h>maxFotoH){ h=maxFotoH; w=maxFotoH*r; } }
+            if(y+h>280){ doc.addPage(); pageNum++; header(); }
+            doc.addImage(f,'JPEG',fotoX,y,w,h);
+            // Afmetingen en notitie naast foto als er plaats is
+            const infoX = fotoX+w+5;
+            const infoY = y+5;
+            doc.setFontSize(12);
+            if(infoX + 50 < pageWidth - margin){
+                if(el.breedte) doc.text(`Breedte: ${el.breedte} cm`,infoX,infoY);
+                if(el.hoogte) doc.text(`Hoogte: ${el.hoogte} cm`,infoX,infoY+6);
+                if(el.notitie) doc.text(`Notitie: ${el.notitie}`,infoX,infoY+12);
+            } else {
+                if(el.breedte) doc.text(`Breedte: ${el.breedte} cm`,margin,y+h+5);
+                if(el.hoogte) doc.text(`Hoogte: ${el.hoogte} cm`,margin,y+h+11);
+                if(el.notitie) doc.text(`Notitie: ${el.notitie}`,margin,y+h+17);
+            }
+            fotoX+=w+5;
+            if(fotoX+w>pageWidth-margin){ fotoX=margin; y+=h+5; }
         }
-
-        let textLines = 3;
-        if(el.notitie) textLines += doc.splitTextToSize(el.notitie,pageWidth-margin*2-fotoMaxWidth-10).length;
-        const textHeight = textLines*lineHeight;
-        blockHeight = Math.max(blockHeight,textHeight)+12;
-
-        if(yEl+blockHeight>pageHeight-bottomMargin){
-            doc.addPage();
-            yEl = 20;
-        }
-
-        // Scheidingslijn boven element
-        doc.setDrawColor(0,0,0);
-        doc.setLineWidth(0.5);
-        doc.line(margin,yEl-2,pageWidth-margin,yEl-2);
-
-        // Tekst 1 regel lager
-        let textY = yEl + 4;
-        doc.setFontSize(12);
-        const textX = margin;
-
-        doc.text(elementTitel,textX,textY); textY += lineHeight;
-        if(el.breedte){ doc.text(`Breedte: ${el.breedte} cm`,textX,textY); textY += lineHeight; }
-        if(el.hoogte){ doc.text(`Hoogte: ${el.hoogte} cm`,textX,textY); textY += lineHeight; }
-        if(el.notitie){
-            const splitNote = doc.splitTextToSize(el.notitie,pageWidth-textX-margin);
-            doc.text(splitNote,textX,textY);
-        }
-
-        // Foto naast tekst indien ruimte
-        let fotoX = margin+100; // start na tekst
-        let fotoY = yEl;
-        for(const fb of fotoBlocks){
-            doc.addImage(fb.src,'JPEG',fotoX,fotoY,fb.w,fb.h);
-            fotoY += fb.h+5;
-        }
-
-        yEl += blockHeight;
+        y+=55;
+        // Paginanummer
+        doc.setFontSize(10); doc.text(`Pagina ${pageNum}`,pageWidth/2,290,{align:"center"});
     }
 
-    // Pagina nummering
-    const pageCount = doc.getNumberOfPages();
-    for(let i=2;i<=pageCount;i++){
-        doc.setPage(i);
-        doc.setFontSize(10);
-        doc.text(`Pagina ${i}`,pageWidth/2,pageHeight-10,{align:"center"});
-    }
-
-    // Footer laatste pagina
-    doc.setPage(pageCount);
-    doc.setFontSize(10);
-    doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",pageWidth/2,pageHeight-5,{align:"center"});
+    // Footer
+    doc.setFontSize(10); doc.setTextColor(100);
+    doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",pageWidth/2,295,{align:"center"});
 
     const fileName=`${project.klant.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
@@ -292,3 +269,5 @@ render();
 </script>
 </body>
 </html>
+
+
