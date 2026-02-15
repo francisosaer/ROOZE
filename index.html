@@ -1,21 +1,11 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nieuwe Opmeting</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-...
-</style>
-
-<!-- PWA / Startscherm ondersteuning -->
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="Logordb.png">
-<meta name="theme-color" content="#0f2441">
-
- 
 body{font-family:Arial,sans-serif;margin:0;padding:15px;background:#f4f6f8;}
 header{text-align:center;margin-bottom:10px;}
 header img{max-width:50px;display:block;margin:0 auto 5px auto;}
@@ -34,6 +24,12 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 #takePhotoBtn{bottom:30px;left:50%;transform:translateX(-50%);}
 #closeCameraBtn{top:20px;right:20px;}
 </style>
+
+<!-- PWA / Startscherm ondersteuning -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="Logordb.png">
+<meta name="theme-color" content="#0f2441">
+
 </head>
 <body>
 
@@ -47,14 +43,15 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 
 <h3>Kamer kiezen</h3>
 <select id="kamer">
-<option>Slaapkamer 1</option>
+<option>Slaapkamer</option>
+<option>Badkamer</option>
 <option>Keuken</option>
 <option>Living</option>
 <option>Garage</option>
 <option>Eetplaats</option>
 <option>Gang</option>
 <option>Toilet</option>
-<option>Badkamer</option>
+<option>Andere</option>
 </select>
 
 <h3>Kies element</h3>
@@ -66,13 +63,6 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 
 <button onclick="voegElementToe()">Toevoegen</button>
 
- <div id="liveOverzicht" style="margin-top:15px;padding:10px;background:white;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.08);">
-    <strong>Overzicht aantal elementen:</strong>
-    <div id="aantalRamen">Ramen: 0</div>
-    <div id="aantalDeuren">Deuren: 0</div>
-    <div id="aantalPoorten">Poorten: 0</div>
-</div>
-   
 <div id="lijst"></div>
 
 <button onclick="maakPDF()">Project als PDF</button>
@@ -144,20 +134,9 @@ function render(){
                 `).join("")}
             </div>
         `;
-                lijst.appendChild(div);
+        lijst.appendChild(div);
     });
-
-    // Live overzicht aantallen bijwerken
-    const ramen = project.elementen.filter(e=>e.type==="Raam").length;
-    const deuren = project.elementen.filter(e=>e.type==="Deur").length;
-    const poorten = project.elementen.filter(e=>e.type==="Poort").length;
-
-    document.getElementById("aantalRamen").textContent = "Ramen: " + ramen;
-    document.getElementById("aantalDeuren").textContent = "Deuren: " + deuren;
-    document.getElementById("aantalPoorten").textContent = "Poorten: " + poorten;
-
 }
-
 
 function update(id,veld,waarde){ const el=project.elementen.find(e=>e.id===id); el[veld]=waarde; saveMetadata();}
 function verwijderFoto(id,index){ fotosMemory[id].splice(index,1); render();}
@@ -198,32 +177,24 @@ async function maakPDF(){
         doc.setFontSize(12); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
 
         let yEl=100;
-       doc.setFontSize(14); 
-doc.text("Overzicht aantal elementen:",15,yEl); 
-yEl+=10;
+        doc.setFontSize(14); 
+        doc.text("Overzicht aantal elementen:",15,yEl); 
+        yEl+=10;
 
-// Meervoudsvormen correct weergeven
-const mapping = {
-    "Raam": "Ramen",
-    "Deur": "Deuren",
-    "Poort": "Poorten"
-};
-
-["Raam","Deur","Poort"].forEach(t=>{
-    const aantal = project.elementen.filter(e=>e.type===t).length;
-    if(aantal>0){ 
-        doc.text(`${mapping[t]}: ${aantal}`,15,yEl); 
-        yEl+=8;
-    }
-});
-
+        const mapping = {"Raam": "Ramen","Deur": "Deuren","Poort": "Poorten"};
+        ["Raam","Deur","Poort"].forEach(t=>{
+            const aantal = project.elementen.filter(e=>e.type===t).length;
+            if(aantal>0){ 
+                doc.text(`${mapping[t]}: ${aantal}`,15,yEl); 
+                yEl+=8;
+            }
+        });
 
         doc.addPage();
         let y=20;
         const header=()=>{ doc.setFontSize(12); doc.setTextColor(15,36,65); doc.text(`Nieuwe Opmeting: ${project.klant}`,15,10); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,10); y=20; }
         header();
 
-        // Elementen en foto's
         for(const el of project.elementen.slice().reverse()){
             doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
             const nummer=el.type+" "+(()=>{let count=0;for(const e of project.elementen){if(e.type===el.type && project.elementen.indexOf(e)<=project.elementen.indexOf(el)) count++;} return count;})();
@@ -271,9 +242,3 @@ render();
 </script>
 </body>
 </html>
-
-
-
-
-
-
