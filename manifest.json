@@ -1,8 +1,20 @@
 {
-  "name": "Opmeet Tool",
+  "name": "Opmeting Tool",
   "short_name": "Opmeting",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f4f6f8",
-  "theme_color": "#2c7be5"
+  "background_color": "#ffffff",
+  "theme_color": "#0f2441",
+  "icons": [
+    {
+      "src": "Logordb.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "Logordb.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
