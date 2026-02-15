@@ -140,7 +140,7 @@ async function openCamera(id){ currentElementId=id; cameraModal.style.display="b
 function takePhoto(){ const ctx=canvas.getContext("2d"); canvas.width=video.videoWidth; canvas.height=video.videoHeight; ctx.drawImage(video,0,0); const data=canvas.toDataURL("image/jpeg",0.6); fotosMemory[currentElementId].push(data); closeCamera(); setTimeout(render,150);}
 function closeCamera(){ cameraModal.style.display="none"; if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());}
 
-/* ===== PDF met alle foto's, tekst zwart, afmetingen/notitie naast foto, paginanummering ===== */
+/* ===== PDF functie: coverpagina blijft rustig, rest netjes + paginanummering ===== */
 async function maakPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -150,17 +150,16 @@ async function maakPDF() {
     const pageHeight = doc.internal.pageSize.height;
     const margin = 15;
     const bottomMargin = 20;
-    let y = 20;
 
     function loadImagePromise(src){
-        return new Promise((resolve)=>{
+        return new Promise(resolve=>{
             const img = new Image();
             img.src = src;
             img.onload = ()=>resolve(img);
         });
     }
 
-    // Cover & logo
+    // ===== COVERPAGINA (pagina 1) =====
     const logo = await loadImagePromise('Logordb.png');
     const logoWidth = 40;
     const logoHeight = logoWidth / (logo.width / logo.height);
@@ -185,44 +184,40 @@ async function maakPDF() {
     let h2 = partnerWidth / (gealanLogo.width / gealanLogo.height);
     doc.addImage(gealanLogo,'PNG',pageWidth-50,partnerY+18,partnerWidth,h2);
 
-    y = 50;
     doc.setFontSize(18);
+    let y = 50;
     doc.text("Overzicht aantal elementen", margin,y);
-    y += 12;
-    doc.setFontSize(12);
+
+    // ==== ELEMENTEN (vanaf pagina 2) ====
+    y = 20;
+    doc.addPage();
+
+    const lineHeight = 6;
+    const fotoMaxWidth = 50;
 
     for(const el of project.elementen.slice().reverse()){
-        doc.setLineWidth(0.2);
-        doc.line(margin,y-5,pageWidth-margin,y-5);
-
-        const fotoMaxWidth = 50;
-        let fotoX = margin;
-        let maxFotoHeightInRow = 0;
-
+        let blockHeight = 0;
         const fotoBlocks = [];
+
         for(const f of fotosMemory[el.id]){
             const img = await loadImagePromise(f);
             let w = fotoMaxWidth;
             let h = w / (img.width / img.height);
             fotoBlocks.push({src:f,w,h});
-            if(h>maxFotoHeightInRow) maxFotoHeightInRow = h;
+            if(h>blockHeight) blockHeight = h;
         }
 
-        const lineHeight = 6;
         let textLines = 4;
-        if(el.notitie){
-            const splitNote = doc.splitTextToSize(el.notitie,pageWidth-margin*2-fotoMaxWidth-10);
-            textLines += splitNote.length;
-        }
-        const textHeight = textLines * lineHeight;
-        const blockHeight = Math.max(maxFotoHeightInRow,textHeight)+12;
+        if(el.notitie) textLines += doc.splitTextToSize(el.notitie,pageWidth-margin*2-fotoMaxWidth-10).length;
+        const textHeight = textLines*lineHeight;
+        blockHeight = Math.max(blockHeight,textHeight)+12;
 
         if(y+blockHeight>pageHeight-bottomMargin){
             doc.addPage();
             y = 20;
         }
 
-        fotoX = margin;
+        let fotoX = margin;
         let fotoY = y;
         for(const fb of fotoBlocks){
             if(fotoX + fb.w > pageWidth-margin){
@@ -236,8 +231,8 @@ async function maakPDF() {
         const textX = margin + fotoMaxWidth*fotoBlocks.length + 10;
         let textY = y;
         doc.text(`Ruimte: ${el.kamer}`,textX,textY); textY+=lineHeight;
-        if(el.breedte) { doc.text(`Breedte: ${el.breedte} cm`,textX,textY); textY+=lineHeight; }
-        if(el.hoogte) { doc.text(`Hoogte: ${el.hoogte} cm`,textX,textY); textY+=lineHeight; }
+        if(el.breedte){ doc.text(`Breedte: ${el.breedte} cm`,textX,textY); textY+=lineHeight; }
+        if(el.hoogte){ doc.text(`Hoogte: ${el.hoogte} cm`,textX,textY); textY+=lineHeight; }
         if(el.notitie){
             const splitNote = doc.splitTextToSize(el.notitie,pageWidth-textX-margin);
             doc.text(splitNote,textX,textY);
@@ -246,12 +241,18 @@ async function maakPDF() {
         y += blockHeight;
     }
 
+    // Pagina nummering vanaf tweede pagina
     const pageCount = doc.getNumberOfPages();
-    for(let i=1;i<=pageCount;i++){
+    for(let i=2;i<=pageCount;i++){
         doc.setPage(i);
         doc.setFontSize(10);
-        doc.text(`Pagina ${i} van ${pageCount}`,pageWidth/2,pageHeight-10,{align:"center"});
+        doc.text(`Pagina ${i}`,pageWidth/2,pageHeight-10,{align:"center"});
     }
+
+    // Footer op laatste pagina
+    doc.setPage(pageCount);
+    doc.setFontSize(10);
+    doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",pageWidth/2,pageHeight-5,{align:"center"});
 
     const fileName=`${project.klant.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
@@ -272,5 +273,3 @@ render();
 </script>
 </body>
 </html>
-
-
