@@ -45,7 +45,7 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 <option>Eetplaats</option>
 <option>Gang</option>
 <option>Toilet</option>
-<option>Ander</option>
+<option>Andere</option>
 </select>
 
 <h3>Kies element</h3>
@@ -140,33 +140,17 @@ async function openCamera(id){ currentElementId=id; cameraModal.style.display="b
 function takePhoto(){ const ctx=canvas.getContext("2d"); canvas.width=video.videoWidth; canvas.height=video.videoHeight; ctx.drawImage(video,0,0); const data=canvas.toDataURL("image/jpeg",0.6); fotosMemory[currentElementId].push(data); closeCamera(); setTimeout(render,150);}
 function closeCamera(){ cameraModal.style.display="none"; if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());}
 
-/* ===== PDF met 6D coverpagina + partnerlogo's + alle foto's correct ===== */
-function loadImagePromise(src){
-    return new Promise((resolve)=>{
-        const img = new Image();
-        img.src = src;
-        img.onload = ()=>resolve(img);
-    });
-}
-
+/* ===== PDF met alle foto's, tekst zwart, afmetingen/notitie naast foto, paginanummering ===== */
 async function maakPDF() {
-
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-
-    doc.setTextColor(0, 0, 0); // Alles zwart
+    doc.setTextColor(0,0,0);
 
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-
     const margin = 15;
     const bottomMargin = 20;
-
     let y = 20;
-
-    // ==============================
-    // HELPER OM AFBEELDINGEN TE LADEN
-    // ==============================
 
     function loadImagePromise(src){
         return new Promise((resolve)=>{
@@ -176,136 +160,98 @@ async function maakPDF() {
         });
     }
 
-    // ==============================
-    // COVER HEADER
-    // ==============================
-
-    const logo = await loadImagePromise('logordb.png');
+    // Cover & logo
+    const logo = await loadImagePromise('Logordb.png');
     const logoWidth = 40;
     const logoHeight = logoWidth / (logo.width / logo.height);
-
-    doc.addImage(logo, 'PNG', margin, 10, logoWidth, logoHeight);
+    doc.addImage(logo,'PNG',margin,10,logoWidth,logoHeight);
 
     doc.setFontSize(11);
-    doc.text("RDB Ramen & Deuren", margin + 45, 15);
-    doc.text("info@rdbramen.be", margin + 45, 21);
-    doc.text("0470 00 00 00", margin + 45, 27);
-    doc.text("BTW BE0000.000.000", margin + 45, 33);
+    doc.text("RDB Ramen & Deuren", margin+45,15);
+    doc.text("info@rdbramen.be", margin+45,21);
+    doc.text("0470 00 00 00", margin+45,27);
+    doc.text("BTW BE0000.000.000", margin+45,33);
 
     doc.setFontSize(12);
-    doc.text(`Datum: ${new Date().toLocaleDateString()}`, pageWidth - 60, 15);
+    doc.text(`Datum: ${new Date().toLocaleDateString()}`, pageWidth-60,15);
 
     // Partnerlogo's
     const reynaersLogo = await loadImagePromise('reynaers.png');
     const gealanLogo = await loadImagePromise('gealan.png');
-
     const partnerWidth = 35;
     let partnerY = 22;
-
     let h1 = partnerWidth / (reynaersLogo.width / reynaersLogo.height);
-    doc.addImage(reynaersLogo, 'PNG', pageWidth - 50, partnerY, partnerWidth, h1);
-
+    doc.addImage(reynaersLogo,'PNG',pageWidth-50,partnerY,partnerWidth,h1);
     let h2 = partnerWidth / (gealanLogo.width / gealanLogo.height);
-    doc.addImage(gealanLogo, 'PNG', pageWidth - 50, partnerY + 18, partnerWidth, h2);
+    doc.addImage(gealanLogo,'PNG',pageWidth-50,partnerY+18,partnerWidth,h2);
 
     y = 50;
-
     doc.setFontSize(18);
-    doc.text("Overzicht aantal elementen", margin, y);
+    doc.text("Overzicht aantal elementen", margin,y);
     y += 12;
-
     doc.setFontSize(12);
 
-    // ==============================
-    // ELEMENTEN
-    // ==============================
+    for(const el of project.elementen.slice().reverse()){
+        doc.setLineWidth(0.2);
+        doc.line(margin,y-5,pageWidth-margin,y-5);
 
-    for (const el of elementen) {
+        const fotoMaxWidth = 50;
+        let fotoX = margin;
+        let maxFotoHeightInRow = 0;
 
-        const fotoMaxWidth = 70;
-        const textX = margin + fotoMaxWidth + 10;
-        const textWidth = pageWidth - textX - margin;
-
-        let imgHeight = 0;
-        let img = null;
-
-        if (el.foto) {
-            img = await loadImagePromise(el.foto);
-            const ratio = img.width / img.height;
-            imgHeight = fotoMaxWidth / ratio;
+        const fotoBlocks = [];
+        for(const f of fotosMemory[el.id]){
+            const img = await loadImagePromise(f);
+            let w = fotoMaxWidth;
+            let h = w / (img.width / img.height);
+            fotoBlocks.push({src:f,w,h});
+            if(h>maxFotoHeightInRow) maxFotoHeightInRow = h;
         }
 
         const lineHeight = 6;
         let textLines = 4;
-
-        if (el.notitie) {
-            const splitNote = doc.splitTextToSize(el.notitie, textWidth);
+        if(el.notitie){
+            const splitNote = doc.splitTextToSize(el.notitie,pageWidth-margin*2-fotoMaxWidth-10);
             textLines += splitNote.length;
         }
-
         const textHeight = textLines * lineHeight;
+        const blockHeight = Math.max(maxFotoHeightInRow,textHeight)+12;
 
-        const blockHeight = Math.max(imgHeight, textHeight) + 12;
-
-        // PAGINACONTROLE
-        if (y + blockHeight > pageHeight - bottomMargin) {
+        if(y+blockHeight>pageHeight-bottomMargin){
             doc.addPage();
             y = 20;
         }
 
-        // Lichte scheidingslijn boven element
-        doc.setLineWidth(0.2);
-        doc.line(margin, y - 5, pageWidth - margin, y - 5);
-
-        // FOTO LINKS
-        if (img) {
-            doc.addImage(img, 'JPEG', margin, y, fotoMaxWidth, imgHeight);
+        fotoX = margin;
+        let fotoY = y;
+        for(const fb of fotoBlocks){
+            if(fotoX + fb.w > pageWidth-margin){
+                fotoX = margin;
+                fotoY += fb.h + 5;
+            }
+            doc.addImage(fb.src,'JPEG',fotoX,fotoY,fb.w,fb.h);
+            fotoX += fb.w + 5;
         }
 
-        // TEKST RECHTS
+        const textX = margin + fotoMaxWidth*fotoBlocks.length + 10;
         let textY = y;
-
-        doc.text(`Ruimte: ${el.ruimte}`, textX, textY);
-        textY += lineHeight;
-
-        doc.text(`Breedte: ${el.breedte} mm`, textX, textY);
-        textY += lineHeight;
-
-        doc.text(`Hoogte: ${el.hoogte} mm`, textX, textY);
-        textY += lineHeight;
-
-        if (el.notitie) {
-            const splitNote = doc.splitTextToSize(el.notitie, textWidth);
-            doc.text(splitNote, textX, textY);
+        doc.text(`Ruimte: ${el.kamer}`,textX,textY); textY+=lineHeight;
+        if(el.breedte) { doc.text(`Breedte: ${el.breedte} cm`,textX,textY); textY+=lineHeight; }
+        if(el.hoogte) { doc.text(`Hoogte: ${el.hoogte} cm`,textX,textY); textY+=lineHeight; }
+        if(el.notitie){
+            const splitNote = doc.splitTextToSize(el.notitie,pageWidth-textX-margin);
+            doc.text(splitNote,textX,textY);
         }
 
         y += blockHeight;
     }
 
-    // ==============================
-    // PAGINANUMMERING
-    // ==============================
-
     const pageCount = doc.getNumberOfPages();
-
-    for (let i = 1; i <= pageCount; i++) {
+    for(let i=1;i<=pageCount;i++){
         doc.setPage(i);
         doc.setFontSize(10);
-        doc.text(
-            `Pagina ${i} van ${pageCount}`,
-            pageWidth / 2,
-            pageHeight - 10,
-            { align: "center" }
-        );
+        doc.text(`Pagina ${i} van ${pageCount}`,pageWidth/2,pageHeight-10,{align:"center"});
     }
-
-    doc.save("opmeting.pdf");
-}
-
-
-    // --- Footer ---
-    doc.setFontSize(10); doc.setTextColor(100);
-    doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});
 
     const fileName=`${project.klant.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
@@ -326,4 +272,5 @@ render();
 </script>
 </body>
 </html>
+
 
